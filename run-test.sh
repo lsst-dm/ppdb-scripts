@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -e -x
+
+# Delete objects from GCS
+./gcloud-rm.sh || true
+
+# Remove local files
+rm -rf staging/ &> /dev/null
+
+# Delete records from PpdbReplicaChunk db
+./delete-replica-chunks.sh
+
+# Export chunks to local files
+./export-chunks-test.sh
+
+# Upload chunks to GCS
+./upload-chunks-test.sh
