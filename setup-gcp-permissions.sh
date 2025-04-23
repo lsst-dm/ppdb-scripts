@@ -66,24 +66,28 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" \
   --role="roles/storage.admin"
 
 # === OPTIONAL: Create a default network for Dataflow jobs ===
-gcloud compute networks create default \
-  --subnet-mode=auto \
-  --project="$PROJECT_ID"
+if ! gcloud compute networks describe default --project="$PROJECT_ID" &>/dev/null; then
+  gcloud compute networks create default --subnet-mode=auto --project="$PROJECT_ID"
+fi
 
-gcloud compute firewall-rules create default-allow-internal \
-  --network=default \
-  --allow tcp,udp,icmp \
-  --source-ranges=10.128.0.0/9 \
-  --priority=65534 \
-  --direction=INGRESS \
-  --target-tags=dataflow
+if ! gcloud compute firewall-rules describe default-allow-internal --project="$PROJECT_ID" &>/dev/null; then
+  gcloud compute firewall-rules create default-allow-internal \
+    --network=default \
+    --allow tcp,udp,icmp \
+    --source-ranges=10.128.0.0/9 \
+    --priority=65534 \
+    --direction=INGRESS \
+    --target-tags=dataflow
+fi
 
-gcloud compute firewall-rules create default-allow-ssh-icmp \
-  --network=default \
-  --allow tcp:22,icmp \
-  --source-ranges=0.0.0.0/0 \
-  --priority=65534 \
-  --direction=INGRESS \
-  --target-tags=dataflow
+if ! gcloud compute firewall-rules describe default-allow-ssh-icmp --project="$PROJECT_ID" &>/dev/null; then
+  gcloud compute firewall-rules create default-allow-ssh-icmp \
+    --network=default \
+    --allow tcp:22,icmp \
+    --source-ranges=0.0.0.0/0 \
+    --priority=65534 \
+    --direction=INGRESS \
+    --target-tags=dataflow
+fi
 
 echo "Setup complete."
