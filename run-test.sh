@@ -3,16 +3,18 @@
 set -e -x
 
 # Delete objects from GCS
-./gcloud-rm.sh || true
+gcloud-rm.sh || true
 
 # Remove local files
-rm -rf staging/ &> /dev/null
+if [ -d "$PWD/staging" ]; then
+  rm -rf "$PWD/staging" &> /dev/null
+fi
 
 # Delete records from PpdbReplicaChunk db
-./delete-replica-chunks.sh
+delete-replica-chunks.sh
 
 # Export chunks to local files
-./export-chunks-test.sh
+export-chunks-test.sh
 
 # Upload chunks to GCS
-./upload-chunks-test.sh
+upload-chunks-test.sh

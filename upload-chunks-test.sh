@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-export GOOGLE_APPLICATION_CREDENTIALS="$PWD/ppdb-dev-438721-9c8a37cf43d9.json"
+export GOOGLE_APPLICATION_CREDENTIALS="$PWD/ppdb-storage-manager.json"
 
 ppdb-replication \
     --log-level DEBUG \
