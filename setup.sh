@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+# Execute this using: source ./setup.sh
+
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

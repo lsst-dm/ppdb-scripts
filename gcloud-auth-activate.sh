@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-gcloud auth activate-service-account --key-file=$PWD/ppdb-storage-manager.json
+gcloud auth activate-service-account --key-file="$HOME/.gcp/keys/ppdb-storage-manager-key.json"
