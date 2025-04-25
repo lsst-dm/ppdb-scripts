@@ -11,9 +11,11 @@ from pathlib import Path
 from typing import IO
 
 
-def _generate_bq_ddl(schema: Schema, project_id: str, dataset_name: str) -> list[str]:
+def _generate_bq_ddl(
+    schema: Schema, project_id: str, dataset_name: str
+) -> dict[str, str]:
     """Generate DDL from schema and write to file."""
-    ddl_statements = []
+    ddl_statements = {}
     for table_name, table in schema.tables.items():
 
         print(f"Generating DDL for table: {table_name}")
@@ -29,21 +31,27 @@ def _generate_bq_ddl(schema: Schema, project_id: str, dataset_name: str) -> list
         # Use CREATE OR REPLACE TABLE instead of CREATE TABLE
         ddl = ddl.replace("CREATE TABLE", "CREATE OR REPLACE TABLE")
 
-        ddl_statements.append(ddl)
+        # Use BigQuery's FLOAT64 instead of DOUBLE
+        ddl = ddl.replace("DOUBLE", "FLOAT64")
+
+        ddl_statements[table_name] = ddl
     return ddl_statements
 
 
 def _print_ddl(ddl_statements, file: IO[str] = sys.stdout) -> None:
     """Print DDL statements to the console."""
-    for ddl in ddl_statements:
+    for table_name, ddl in ddl_statements:
         print(ddl, file=file)
         print("\n" + "-" * 80 + "\n", file=file)  # Add a separator between statements
 
 
-def _write_ddl_to_file(ddl_statements, output_file: Path) -> None:
+def _write_ddl_to_directory(ddl_statements, output_directory: Path) -> None:
     """Write DDL statements to a file."""
-    with open(output_file, "w") as f:
-        _print_ddl(ddl_statements, file=f)
+    for table_name, ddl in ddl_statements.items():
+        output_file = output_directory / f"{table_name}.sql"
+        with open(output_file, "w") as f:
+            f.write(ddl)
+            print(f"DDL for {table_name} written to {output_file}")
 
 
 def _make_parser():
@@ -52,11 +60,10 @@ def _make_parser():
         description="Generate BigQuery DDL from APDB Felis schema."
     )
     parser.add_argument(
-        "--output-file",
+        "--output-directory",
         type=str,
-        required=False,
-        default=None,
-        help="Path to the output file for DDL statements.",
+        required=True,
+        help="Path to the output directory for DDL statements.",
     )
     parser.add_argument(
         "--project-id",
@@ -69,6 +76,11 @@ def _make_parser():
         type=str,
         required=True,
         help="BigQuery dataset name.",
+    )
+    parser.add_argument(
+        "--include-table",
+        action="append",
+        help="Specify tables to include. Can be used multiple times.",
     )
     return parser
 
@@ -84,12 +96,25 @@ def main():
     metadata = MetaDataBuilder(apdb_schema, ignore_constraints=True).build()
     ddl_statements = _generate_bq_ddl(metadata, args.project_id, args.dataset_name)
 
-    if args.output_file:
-        output_file = Path(args.output_file)
-        if output_file.parent and not output_file.parent.exists():
-            output_file.parent.mkdir(parents=True, exist_ok=True)
-        _write_ddl_to_file(ddl_statements, output_file)
-        print(f"DDL statements written to {output_file}")
+    if args.include_table:
+        # Filter the DDL statements based on the specified tables
+        ddl_statements = {
+            table_name: ddl
+            for table_name, ddl in ddl_statements.items()
+            if table_name in args.include_table
+        }
+        if not ddl_statements:
+            print("No matching tables found.")
+            sys.exit(1)
+
+    if args.output_directory:
+        output_directory = Path(args.output_directory)
+        if not output_directory.exists():
+            output_directory.mkdir(parents=True, exist_ok=True)
+        if not output_directory.is_dir():
+            raise ValueError(f"Output path {output_directory} is not a directory.")
+        _write_ddl_to_directory(ddl_statements, output_directory)
+        print(f"DDL statements written to {output_directory}")
     else:
         print("DDL statements:")
         _print_ddl(ddl_statements)
