@@ -6,6 +6,9 @@ from apache_beam.options.pipeline_options import (
 )
 from pyarrow import parquet
 import pyarrow
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 
 class CustomOptions(PipelineOptions):
@@ -19,6 +22,7 @@ class CountParquetRows(beam.DoFn):
         print(f"Reading: {file_path}")
         fs, path = pyarrow.fs.FileSystem.from_uri(file_path)
         table = parquet.read_table(path, filesystem=fs)
+        logging.info(f"{file_path}: {table.num_rows} rows")
         yield f"{file_path}: {table.num_rows} rows"
 
 

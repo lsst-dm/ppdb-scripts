@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-set -e -x
+
+set -e
+set -x
 
 # === CONFIGURATION ===
 PROJECT_ID="${PROJECT_ID:-ppdb-dev-438721}"
@@ -89,5 +91,20 @@ if ! gcloud compute firewall-rules describe default-allow-ssh-icmp --project="$P
     --direction=INGRESS \
     --target-tags=dataflow
 fi
+
+# === BIGQUERY PERMISSIONS ===
+echo "Granting BigQuery permissions to $SERVICE_ACCOUNT"
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:$SERVICE_ACCOUNT" \
+  --role="roles/bigquery.dataEditor"
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:$SERVICE_ACCOUNT" \
+  --role="roles/bigquery.jobUser"
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:$SERVICE_ACCOUNT" \
+  --role="roles/bigquery.admin"
 
 echo "Setup complete."

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-set -e -x
+set -e
+set -x
 
 # Delete objects from GCS
 gcloud-rm.sh || true
