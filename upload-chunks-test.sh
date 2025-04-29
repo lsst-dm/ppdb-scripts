@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
 
-export GOOGLE_APPLICATION_CREDENTIALS="$PWD/ppdb-storage-manager.json"
+if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+  echo "GOOGLE_APPLICATION_CREDENTIALS is not set. Please set it to your service account key file."
+  exit 1
+fi
+
+if [ -z "$GCS_BUCKET" ]; then
+  echo "BUCKET is not set. Please set it to your Google Cloud Storage bucket name."
+  exit 1
+fi
 
 ppdb-replication \
-    --log-level DEBUG \
+    --log-level INFO \
     upload-chunks \
     --directory ./staging/ \
-    --bucket rubin-ppdb-test-bucket-1 \
+    --bucket ${GCS_BUCKET} \
     --folder data/tmp \
     --exit-on-empty

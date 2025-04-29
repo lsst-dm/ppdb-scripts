@@ -1,110 +1,117 @@
 #!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 set -x
 
 # === CONFIGURATION ===
-PROJECT_ID="${PROJECT_ID:-ppdb-dev-438721}"
-SERVICE_ACCOUNT="${SERVICE_ACCOUNT:-ppdb-storage-manager@${PROJECT_ID}.iam.gserviceaccount.com}"
-BUCKET_NAME="${BUCKET_NAME:-rubin-ppdb-test-bucket-1}"
+GCP_PROJECT="${GCP_PROJECT:-ppdb-dev-438721}"
+GCP_PROJECT_NUMBER="$(gcloud projects describe ${GCP_PROJECT} --format='value(projectNumber)')"
+SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT_EMAIL:-ppdb-storage-manager@${GCP_PROJECT}.iam.gserviceaccount.com}"
 USER_EMAIL="${USER_EMAIL:-$(gcloud config get-value account)}"
 
 # === PREVENT SCRIPT EXECUTION AS A SERVICE ACCOUNT ===
-if [[ "$USER_EMAIL" == *gserviceaccount.com ]]; then
+if [[ "${USER_EMAIL}" == *gserviceaccount.com ]]; then
   echo "ERROR: This script must be run as a user account, not a service account."
-  echo "Current account: $USER_EMAIL"
+  echo "Current account: ${USER_EMAIL}"
   echo "Run 'gcloud auth login' to switch."
   exit 1
 fi
 
-# === IAM BINDINGS FOR YOUR SERVICE ACCOUNT ===
-echo "Granting Cloud Functions and Dataflow roles to $SERVICE_ACCOUNT"
+# === IAM BINDINGS FOR GCS EVENTING ===
+echo "Granting Pub/Sub Publisher to GCS service account service-${GCP_PROJECT_NUMBER}@gs-project-accounts.iam.gserviceaccount.com"
 
-# Cloud Functions (Gen 1 deployment)
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:$SERVICE_ACCOUNT" \
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
+  --member="serviceAccount:service-${GCP_PROJECT_NUMBER}@gs-project-accounts.iam.gserviceaccount.com" \
+  --role="roles/pubsub.publisher"
+
+# === IAM BINDINGS FOR SERVICE ACCOUNT ===
+echo "Granting roles to ${SERVICE_ACCOUNT_EMAIL}"
+
+# Cloud Functions deployment and execution
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/cloudfunctions.developer"
-
-# Allow impersonation and execution of services
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:$SERVICE_ACCOUNT" \
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/iam.serviceAccountUser"
 
-# Full access to GCS
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:$SERVICE_ACCOUNT" \
-  --role="roles/storage.admin"
-
-# Dataflow job submission and execution
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:$SERVICE_ACCOUNT" \
+# Dataflow job creation and worker execution
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/dataflow.developer"
-
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:$SERVICE_ACCOUNT" \
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/dataflow.worker"
 
-# Allow log writing
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:$SERVICE_ACCOUNT" \
+# GCS access
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/storage.objectAdmin"
+
+# Logging
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/logging.logWriter"
 
-# === GRANT NETWORK ACCESS ===
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:$SERVICE_ACCOUNT" \
+# Networking
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/compute.networkUser"
 
-echo "All required IAM roles granted to $SERVICE_ACCOUNT for Cloud Functions and Dataflow."
+# BigQuery access
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/bigquery.dataEditor"
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/bigquery.jobUser"
 
-# === OPTIONAL: Grant user access to launch Dataflow manually ===
-echo "Granting Dataflow dev roles to user $USER_EMAIL"
+# Pub/Sub access
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/pubsub.publisher"
 
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="user:$USER_EMAIL" \
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/pubsub.subscriber"
+
+echo "All required IAM roles granted to ${SERVICE_ACCOUNT_EMAIL}."
+
+# === OPTIONAL: Grant USER access for manual Dataflow launches ===
+echo "Granting Dataflow dev roles to user ${USER_EMAIL}"
+
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
+  --member="user:${USER_EMAIL}" \
   --role="roles/dataflow.developer"
-
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="user:$USER_EMAIL" \
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
+  --member="user:${USER_EMAIL}" \
   --role="roles/storage.admin"
 
-# === OPTIONAL: Create a default network for Dataflow jobs ===
-if ! gcloud compute networks describe default --project="$PROJECT_ID" &>/dev/null; then
-  gcloud compute networks create default --subnet-mode=auto --project="$PROJECT_ID"
+# === OPTIONAL: Create default VPC and firewall rules for Dataflow jobs ===
+echo "Ensuring default network and firewall rules exist."
+
+if ! gcloud compute networks describe default --project="${GCP_PROJECT}" &>/dev/null; then
+  gcloud compute networks create default --subnet-mode=auto --project="${GCP_PROJECT}"
 fi
 
-if ! gcloud compute firewall-rules describe default-allow-internal --project="$PROJECT_ID" &>/dev/null; then
+if ! gcloud compute firewall-rules describe default-allow-internal --project="${GCP_PROJECT}" &>/dev/null; then
   gcloud compute firewall-rules create default-allow-internal \
     --network=default \
-    --allow tcp,udp,icmp \
+    --allow=tcp,udp,icmp \
     --source-ranges=10.128.0.0/9 \
     --priority=65534 \
     --direction=INGRESS \
     --target-tags=dataflow
 fi
 
-if ! gcloud compute firewall-rules describe default-allow-ssh-icmp --project="$PROJECT_ID" &>/dev/null; then
+if ! gcloud compute firewall-rules describe default-allow-ssh-icmp --project="${GCP_PROJECT}" &>/dev/null; then
   gcloud compute firewall-rules create default-allow-ssh-icmp \
     --network=default \
-    --allow tcp:22,icmp \
+    --allow=tcp:22,icmp \
     --source-ranges=0.0.0.0/0 \
     --priority=65534 \
     --direction=INGRESS \
     --target-tags=dataflow
 fi
-
-# === BIGQUERY PERMISSIONS ===
-echo "Granting BigQuery permissions to $SERVICE_ACCOUNT"
-
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:$SERVICE_ACCOUNT" \
-  --role="roles/bigquery.dataEditor"
-
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:$SERVICE_ACCOUNT" \
-  --role="roles/bigquery.jobUser"
-
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:$SERVICE_ACCOUNT" \
-  --role="roles/bigquery.admin"
 
 echo "Setup complete."

@@ -4,13 +4,13 @@ set -e
 set -x
 
 DATASET_NAME=${1:-ppdb_dev}
-PROJECT_ID=$(gcloud config get-value project)
+GCP_PROJECT=$(gcloud config get-value project)
 
-echo "Creating BigQuery dataset: ${PROJECT_ID}.${DATASET_NAME}"
+echo "Creating BigQuery dataset: ${GCP_PROJECT}.${DATASET_NAME}"
 
 generate_bq_ddl.py \
   --output-directory sql/${DATASET_NAME} \
-  --project-id $PROJECT_ID \
+  --project-id $GCP_PROJECT \
   --dataset-name $DATASET_NAME \
   --include-table DiaObject \
   --include-table DiaSource \
