@@ -2,6 +2,8 @@
 
 # Execute from dax_ppdb/cloud_functions/ingest directory
 
+set -euxo pipefail
+
 if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
   echo "GOOGLE_APPLICATION_CREDENTIALS is not set. Please set it to your service account key file."
   exit 1
@@ -35,4 +37,4 @@ python parq_count_beam_job.py \
   --staging_location="gs://${GCS_BUCKET}/dataflow/staging" \
   --service_account_email="${SERVICE_ACCOUNT_EMAIL}" \
   --network=default \
-  --input_path="gs://rubin-ppdb-test-bucket-1/data/tmp/2025/04/23/1737056400/DiaSource.parquet"
+  --input_path="gs://${GCS_BUCKET}/data/tmp/2025/04/23/1737056400/DiaSource.parquet"

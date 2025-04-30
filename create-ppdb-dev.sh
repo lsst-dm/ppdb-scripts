@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
-set -x
+set -euxo pipefail
 
 for sql_file in sql/ppdb_dev/*.sql; do
   echo "Running SQL file: $sql_file"

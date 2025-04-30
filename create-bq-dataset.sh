@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euxo pipefail
+
 if [ -z "$1" ]; then
   echo "Usage: $0 <dataset_name>"
   exit 1

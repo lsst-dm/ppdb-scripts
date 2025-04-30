@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -euxo pipefail
+
 # Check if the correct number of arguments is provided
 if [ "$#" -ne 1 ]; then
   echo "Usage: $0 SCHEMA_NAME"

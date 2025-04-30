@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-set -x
+set -euxo pipefail
 
 # === CONFIGURATION ===
 GCP_PROJECT="${GCP_PROJECT:-ppdb-dev-438721}"

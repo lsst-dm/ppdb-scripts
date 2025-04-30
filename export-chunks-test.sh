@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+set -euxo pipefail
+
 APDB_CONFIG=s3://rubin-pp-dev-users/apdb_config/cassandra/pp_apdb_lsstcomcamsim-dev.py
 PPDB_CONFIG=$PWD/ppdb_dm-49202.yaml
 export AWS_SHARED_CREDENTIALS_FILE=$HOME/.aws/aws-credentials.ini

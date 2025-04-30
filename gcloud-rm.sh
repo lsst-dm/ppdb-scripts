@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euxo pipefail
+
 # read -p "Are you sure you want to delete all contents under data/tmp/? [Y/N] " confirm
 # if [[ "$confirm" == [yY] ]]; then
 gcloud storage rm --recursive gs://rubin-ppdb-test-bucket-1/data/tmp/

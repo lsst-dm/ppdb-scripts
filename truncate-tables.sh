@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -euxo pipefail
 
 # Ensure the required environment variable is set
 if [ -z "${GCP_PROJECT+x}" ]; then

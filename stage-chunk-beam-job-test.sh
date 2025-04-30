@@ -2,6 +2,8 @@
 
 # Execute from directory: dax_ppdb/cloud_functions/stage_chunk
 
+set -euxo pipefail
+
 export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.gcp/keys/ppdb-storage-manager-key.json"
 
 PROJECT_ID="ppdb-dev-438721"

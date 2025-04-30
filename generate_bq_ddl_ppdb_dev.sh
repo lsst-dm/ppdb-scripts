@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
-set -x
+set -euxo pipefail
 
 DATASET_NAME=${1:-ppdb_dev}
 GCP_PROJECT=$(gcloud config get-value project)

@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
-set -x
+set -euxo pipefail
 
 # Delete objects from GCS
 gcloud-rm.sh || true

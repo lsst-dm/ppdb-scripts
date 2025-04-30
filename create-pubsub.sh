@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -euxo pipefail
 
 if [ -z "${GOOGLE_APPLICATION_CREDENTIALS+x}" ]; then
   echo "GOOGLE_APPLICATION_CREDENTIALS is not set. Please set it to your service account key file."

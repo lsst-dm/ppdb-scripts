@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euxo pipefail
+
 # Database connection details
 DB_URL="postgresql://rubin@usdf-prompt-processing-dev.slac.stanford.edu:5432/lsst-devl"
 SCHEMA_NAME="ppdb_dm-49202"

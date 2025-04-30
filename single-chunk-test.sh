@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-set -e -x
-set -o pipefail
+set -euxo pipefail
 
 # Export a single chunk to local parquet files
 export-chunks-test.sh
