@@ -26,7 +26,7 @@ for name in "stage-chunk"; do  # Add more names as needed
   # Create a subscription to the main topic with a dead letter policy
   gcloud pubsub subscriptions create "$SUBSCRIPTION_NAME" \
     --topic="$TOPIC_NAME" \
-    --ack-deadline=60 \
+    --ack-deadline=120 \
     --dead-letter-topic="$DEAD_LETTER_TOPIC_NAME" \
     --max-delivery-attempts=5 \
     --project="$GCP_PROJECT" || echo "Subscription $SUBSCRIPTION_NAME already exists."
