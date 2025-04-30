@@ -12,10 +12,18 @@ if [ -z "$GCS_BUCKET" ]; then
   exit 1
 fi
 
+if [ -z "$PPDB_STAGING_DIR" ]; then
+  echo "PPDB_STAGING_DIR is not set. Please set it to your PPDB staging directory."
+  exit 1
+fi
+
+LOG_LEVEL="${LOG_LEVEL:-DEBUG}"
+
 ppdb-replication \
-    --log-level INFO \
+    --log-level $LOG_LEVEL \
     upload-chunks \
-    --directory ./staging/ \
+    --directory $PPDB_STAGING_DIR \
     --bucket ${GCS_BUCKET} \
     --folder data/tmp \
-    --exit-on-empty
+    --exit-on-empty \
+    --single

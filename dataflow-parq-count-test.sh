@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-# Execute from dax_ppdb/cloud_functions/ingest directory
-
 set -euxo pipefail
 
 if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
