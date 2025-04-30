@@ -13,4 +13,4 @@ SDM_SCHEMAS_DIR=../sdm_schemas ppdb-replication \
     --max-wait-time 0 \
     --check-interval 9 \
     --exit-on-empty \
-#    --single # DEBUG
+    --single # DEBUG
