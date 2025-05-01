@@ -24,6 +24,13 @@ fi
 SNAPSHOT_DATE="$1"
 SNAPSHOT_DATASET_ID="${DATASET_ID}_snapshot"
 
+# Ensure the target dataset exists
+if ! bq --project_id="$GCP_PROJECT" show "$DATASET_ID" >/dev/null 2>&1; then
+  echo "Target dataset $DATASET_ID does not exist. Creating it..."
+  bq --project_id="$GCP_PROJECT" mk "$DATASET_ID"
+  echo "Target dataset $DATASET_ID created successfully."
+fi
+
 # List all snapshot tables for the given date
 readarray -t SNAPSHOT_TABLES < <(bq ls --project_id="$GCP_PROJECT" --format=prettyjson "$SNAPSHOT_DATASET_ID" | jq -r ".[] | select(.tableReference.tableId | endswith(\"_${SNAPSHOT_DATE}\")) | .tableReference.tableId")
 
