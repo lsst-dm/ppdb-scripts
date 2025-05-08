@@ -6,4 +6,4 @@ set -euxo pipefail
 export-single-chunk.sh
 
 # Upload a single chunk to GCS (should trigger cloud function)
-upload-single-chunks.sh
+upload-single-chunk.sh

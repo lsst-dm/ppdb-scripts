@@ -26,7 +26,7 @@ export APDB_CONFIG_FILE="s3://rubin-pp-dev-users/apdb_config/cassandra/pp_apdb_l
 export AWS_SHARED_CREDENTIALS_FILE=$HOME/.aws/aws-credentials.ini  #
 export SDM_SCHEMAS_DIR="$HOME/.ppdb/sdm_schemas"  # TODO: Eventually replace by reading from lsst resource.
 export PPDB_STAGING_DIR="$HOME/.ppdb/staging"
-export LOG_LEVEL="DEBUG"
+export LOG_LEVEL="INFO"
 
 # == PRINT ENVIRONMENT ==
 echo "Environment variables set:"

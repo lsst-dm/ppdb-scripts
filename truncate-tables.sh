@@ -3,8 +3,8 @@
 set -euxo pipefail
 
 # Ensure the required environment variable is set
-if [ -z "${GCP_PROJECT+x}" ]; then
-  echo "PROJECT_ID is not set. Please set it to your Google Cloud project ID."
+if [ -z "${GCP_PROJECT:-}" ]; then
+  echo "PROJECT_ID is unset or empty. Please set it to your Google Cloud project ID."
   exit 1
 fi
 

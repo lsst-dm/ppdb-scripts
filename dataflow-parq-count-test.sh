@@ -2,28 +2,28 @@
 
 set -euxo pipefail
 
-if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
-  echo "GOOGLE_APPLICATION_CREDENTIALS is not set. Please set it to your service account key file."
+if [ -z "${GOOGLE_APPLICATION_CREDENTIALS:-}" ]; then
+  echo "GOOGLE_APPLICATION_CREDENTIALS is unset or empty. Please set it to your service account key file."
   exit 1
 fi
 
-if [ -z "$PROJECT_ID" ]; then
-  echo "PROJECT_ID is not set. Please set it to your Google Cloud project ID."
+if [ -z "${PROJECT_ID:-}" ]; then
+  echo "PROJECT_ID is unset or empty. Please set it to your Google Cloud project ID."
   exit 1
 fi
 
-if [ -z "$GCS_BUCKET" ]; then
-  echo "BUCKET is not set. Please set it to your Google Cloud Storage bucket name."
+if [ -z "${GCS_BUCKET:-}" ]; then
+  echo "BUCKET is unset or empty. Please set it to your Google Cloud Storage bucket name."
   exit 1
 fi
 
-if [ -z "$REGION" ]; then
-  echo "REGION is not set. Please set it to your Google Cloud region."
+if [ -z "${REGION:-}" ]; then
+  echo "REGION is unset or empty. Please set it to your Google Cloud region."
   exit 1
 fi
 
-if [ -z "$SERVICE_ACCOUNT_EMAIL" ]; then
-  echo "SERVICE_ACCOUNT_EMAIL is not set. Please set it to your Google Cloud service account email."
+if [ -z "${SERVICE_ACCOUNT_EMAIL:-}" ]; then
+  echo "SERVICE_ACCOUNT_EMAIL is unset or empty. Please set it to your Google Cloud service account email."
   exit 1
 fi
 

@@ -3,8 +3,8 @@
 set -euxo pipefail
 
 # Ensure PPDB_STAGING_DIR is set and not empty
-if [ -z "${PPDB_STAGING_DIR+x}" ] || [ -z "$PPDB_STAGING_DIR" ]; then
-  echo "PPDB_STAGING_DIR is not set or is empty. Please set it to your staging directory."
+if [ -z "${PPDB_STAGING_DIR:-}" ]; then
+  echo "PPDB_STAGING_DIR is unset or empty. Please set it to your staging directory."
   exit 1
 fi
 

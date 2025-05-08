@@ -2,13 +2,13 @@
 
 set -euxo pipefail
 
-if [ -z "${GCP_PROJECT+x}" ]; then
-  echo "GCP_PROJECT is not set. Please set it to your GCP project ID."
+if [ -z "${GCP_PROJECT:-}" ]; then
+  echo "GCP_PROJECT is unset or empty. Please set it to your GCP project ID."
   exit 1
 fi
 
-if [ -z "${DATASET_ID+x}" ]; then
-  echo "DATASET_ID is not set. Please set it to your BigQuery dataset name."
+if [ -z "${DATASET_ID:-}" ]; then
+  echo "DATASET_ID is unset or empty. Please set it to your BigQuery dataset name."
   exit 1
 fi
 
