@@ -3,8 +3,6 @@
 # This provides the complete environment for running the Dataflow pipeline,
 # including execution of local test scripts.
 
-set -euo pipefail
-
 # == GCP ENVIRONMENT ==
 export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.gcp/keys/ppdb-storage-manager-key.json"
 export GCP_PROJECT="ppdb-dev-438721"
