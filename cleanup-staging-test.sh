@@ -3,7 +3,7 @@
 set -euxo pipefail
 
 # Remove staging files from GCS
-gcloud-rm.sh
+gcs-rm.sh
 
 # Truncate tables in BigQuery
 truncate-tables.sh
