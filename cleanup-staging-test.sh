@@ -9,7 +9,7 @@ gcs-rm.sh
 truncate-tables.sh
 
 # Delete rows from replica chunks database
-delete-replica-chunks.sh
+delete-replica-chunks.sh ppdb_dm50040
 
 # Delete local staging directory
 staging_dir=$PWD/staging
