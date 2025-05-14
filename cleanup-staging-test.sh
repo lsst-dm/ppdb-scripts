@@ -2,14 +2,20 @@
 
 set -euxo pipefail
 
+read -p "Are you sure you want to clean up staging? [y/N] " confirm
+case "$confirm" in
+    [yY]) ;;
+    *) echo "Aborted."; exit 1 ;;
+esac
+
 # Remove staging files from GCS
 gcs-rm.sh
 
 # Truncate tables in BigQuery
-truncate-tables.sh
+bq-truncate-tables.sh
 
 # Delete rows from replica chunks database
-delete-replica-chunks.sh ppdb_dm50040
+postgres-delete-replica-chunks.sh ppdb_dm50040
 
 # Delete local staging directory
 staging_dir=$PWD/staging

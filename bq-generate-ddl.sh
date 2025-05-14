@@ -7,7 +7,7 @@ GCP_PROJECT=$(gcloud config get-value project)
 
 echo "Creating BigQuery dataset: ${GCP_PROJECT}.${DATASET_NAME}"
 
-generate_bq_ddl.py \
+bq_generate_ddl.py \
   --output-directory sql/${DATASET_NAME} \
   --project-id $GCP_PROJECT \
   --dataset-name $DATASET_NAME \
