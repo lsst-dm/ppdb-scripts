@@ -34,13 +34,15 @@ def _generate_bq_ddl(
         # Use BigQuery's FLOAT64 instead of DOUBLE
         ddl = ddl.replace("DOUBLE", "FLOAT64")
 
+        ddl += "PARTITION BY _PARTITIONTIME"  # Add partitioning clause
+
         ddl_statements[table_name] = ddl
     return ddl_statements
 
 
 def _print_ddl(ddl_statements, file: IO[str] = sys.stdout) -> None:
     """Print DDL statements to the console."""
-    for table_name, ddl in ddl_statements:
+    for table_name, ddl in ddl_statements.items():
         print(ddl, file=file)
         print("\n" + "-" * 80 + "\n", file=file)  # Add a separator between statements
 
@@ -62,7 +64,7 @@ def _make_parser():
     parser.add_argument(
         "--output-directory",
         type=str,
-        required=True,
+        required=False,
         help="Path to the output directory for DDL statements.",
     )
     parser.add_argument(

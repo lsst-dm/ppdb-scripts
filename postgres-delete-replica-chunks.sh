@@ -8,6 +8,13 @@ if [ "$#" -ne 1 ]; then
   exit 1
 fi
 
+# Y/N confirmation
+read -p "Are you sure you want to delete all rows from $1.PpdbReplicaChunk? [y/N] " confirm
+case "$confirm" in
+    [yY]) ;;
+    *) echo "Aborted."; exit 1 ;;
+esac
+
 # Database connection details
 DB_URL="postgresql://rubin@usdf-prompt-processing-dev.slac.stanford.edu:5432/lsst-devl"
 PPDB_SCHEMA_NAME="$1"

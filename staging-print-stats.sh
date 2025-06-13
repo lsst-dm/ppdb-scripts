@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Print statistics about the PPDB staging directory.
+
 (
   _staging_dir=/sdf/home/j/jeremym/rubin-user/ppdb_staging
   cd $_staging_dir

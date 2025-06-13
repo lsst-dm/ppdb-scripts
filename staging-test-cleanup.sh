@@ -2,6 +2,10 @@
 
 set -euxo pipefail
 
+# Script is only kept for reference and should not be used.
+echo "Don't use this script"
+exit 1
+
 read -p "Are you sure you want to clean up staging? [y/N] " confirm
 case "$confirm" in
     [yY]) ;;

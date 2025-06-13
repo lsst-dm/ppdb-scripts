@@ -7,6 +7,7 @@ ppdb-replication \
     upload-chunks \
     --directory ${PPDB_STAGING_DIR} \
     --bucket ${GCS_BUCKET} \
+    --dataset ${GCP_PROJECT}:${DATASET_ID} \
     --wait-interval 0 \
     --upload-interval 0 \
     --prefix data/tmp \
