@@ -175,3 +175,6 @@ cython_debug/
 
 # Google credentials
 ppdb-dev*.json
+
+# Scratch dir
+.scratch
