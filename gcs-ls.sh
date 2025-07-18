@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
 
-set -euxo pipefail
+set -euo pipefail
 
-gcloud storage ls --recursive gs://rubin-ppdb-test-bucket-1/$1
+if [ -z "$1" ]; then
+  echo "Usage: $0 <directory_path>"
+  exit 1
+fi
+
+if [ -z "${GCS_BUCKET:-}" ]; then
+  echo "GCS_BUCKET is unset or empty. Please set it to your GCP project ID."
+  exit 1
+fi
+
+gcloud storage ls --recursive gs://${GCS_BUCKET}/${1}
