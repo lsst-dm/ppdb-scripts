@@ -81,6 +81,11 @@ gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
   --role="roles/pubsub.publisher" \
   --quiet
 
+# Grant the service account permissions to publish to the topic
+gcloud pubsub topics add-iam-policy-binding stage-chunk-topic \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/pubsub.publisher"
+
 # Optional cleanup
 gsutil notification delete "gs://${TEMP_BUCKET}"
 gsutil rm -r "gs://${TEMP_BUCKET}"
