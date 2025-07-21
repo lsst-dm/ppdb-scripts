@@ -2,6 +2,12 @@
 
 set -euxo pipefail
 
+# FIXME: This script should be broken up into multiple scripts:
+# - IAM setup
+# - GCS bucket setup and permissions
+# - Dataflow setup
+# - Pub/Sub setup
+
 # === CONFIGURATION ===
 
 # Name of the Google Cloud project needs to be set in the environment.
@@ -186,38 +192,3 @@ gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
   --role="roles/storage.admin"
 
 echo "All required IAM roles granted to ${SERVICE_ACCOUNT_EMAIL}."
-
-# === OPTIONAL: CREATE DEFAULT NETWORK AND FIREWALL RULES FOR DATAFLOW ===
-echo "Ensuring default network and firewall rules exist."
-
-if ! gcloud compute networks describe default --project="${GCP_PROJECT}" &>/dev/null; then
-  gcloud compute networks create default --subnet-mode=auto --project="${GCP_PROJECT}" --quiet
-fi
-
-# Need to enable Google Compute Engine API before doing this by visiting:
-# https://console.developers.google.com/apis/api/compute.googleapis.com/overview?project=${GCP_PROJECT}
-if ! gcloud compute firewall-rules describe default-allow-internal --project="${GCP_PROJECT}" &>/dev/null; then
-  gcloud compute firewall-rules create default-allow-internal \
-    --network=default \
-    --allow=tcp,udp,icmp \
-    --source-ranges=10.128.0.0/9 \
-    --priority=65534 \
-    --direction=INGRESS \
-    --target-tags=dataflow \
-    --project="${GCP_PROJECT}" \
-    --quiet
-fi
-
-if ! gcloud compute firewall-rules describe default-allow-ssh-icmp --project="${GCP_PROJECT}" &>/dev/null; then
-  gcloud compute firewall-rules create default-allow-ssh-icmp \
-    --network=default \
-    --allow=tcp:22,icmp \
-    --source-ranges=0.0.0.0/0 \
-    --priority=65534 \
-    --direction=INGRESS \
-    --target-tags=dataflow \
-    --project="${GCP_PROJECT}" \
-    --quiet
-fi
-
-echo "Setup complete."
