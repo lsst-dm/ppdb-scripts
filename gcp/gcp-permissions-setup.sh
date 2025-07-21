@@ -3,8 +3,16 @@
 set -euxo pipefail
 
 # === CONFIGURATION ===
+
+# Name of the Google Cloud project needs to be set in the environment.
 if [ -z "${GCP_PROJECT:-}" ]; then
   echo "GCP_PROJECT is unset or empty. Please set it to your environment."
+  exit 1
+fi
+
+# Name of the target GCS bucket needs to be set in the environment.
+if [ -z "${GCS_BUCKET:-}" ]; then
+  echo "GCS_BUCKET is unset or empty. Please set it to your Google Cloud Storage bucket."
   exit 1
 fi
 
@@ -104,6 +112,14 @@ gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
   --role="roles/storage.objectCreator"
 
 gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/storage.objectAdmin"
+
+gcloud storage buckets add-iam-policy-binding gs://${GCS_BUCKET} \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/storage.objectViewer"
+
+gcloud storage buckets add-iam-policy-binding gs://${GCS_BUCKET} \
   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/storage.objectAdmin"
 
