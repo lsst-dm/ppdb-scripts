@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# FIXME: This has been broken up into multiple scripts. DO NOT USE.
+
 # This provides the complete environment for running the Dataflow pipeline,
 # including execution of local test scripts.
 
