@@ -2,7 +2,8 @@
 
 set -euxo pipefail
 
-# FIXME: This script should be broken up into multiple scripts:
+# FIXME: This should be broken up into multiple scripts:
+# - Service account creation
 # - IAM setup
 # - GCS bucket setup and permissions
 # - Dataflow setup
@@ -23,6 +24,8 @@ if [ -z "${GCS_BUCKET:-}" ]; then
 fi
 
 # Set email of currently authenticated user (optional IAM binding later)
+# FIXME: Shouldn't this be the service account email instead?
+# It is used to assign storage.admin role at the end.
 USER_EMAIL="${USER_EMAIL:-$(gcloud config get-value account --quiet)}"
 
 # === SET PROJECT CONTEXT ===
