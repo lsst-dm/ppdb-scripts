@@ -2,11 +2,11 @@
 
 set -euxo pipefail
 
-# FIXME: This should be broken up into multiple scripts:
-# - IAM setup
-# - GCS bucket setup and permissions
-# - Dataflow setup
-# - Pub/Sub setup
+###############################################################################
+# Set up IAM roles for PPDB service account.
+###############################################################################
+
+# FIXME: Move GCS bucket setup and permissions to another script and also Dataflow setup should be separate.
 
 # === CONFIGURATION ===
 
@@ -36,47 +36,6 @@ USER_EMAIL="${USER_EMAIL:-$(gcloud config get-value account --quiet)}"
 # === SET PROJECT CONTEXT ===
 gcloud config set project "${GCP_PROJECT}" --quiet
 GCP_PROJECT_NUMBER="$(gcloud projects describe "${GCP_PROJECT}" --format='value(projectNumber)' --quiet)"
-
-# === IAM BINDINGS FOR GCS EVENTING ===
-# We have to go through some monkey business to set up GCS eventing with Pub/Sub
-# in order to create the service account for it.
-# FIXME: Find a better way to do this without creating a temporary bucket and topic.
-
-echo "Granting Pub/Sub Publisher to GCS service account service-${GCP_PROJECT_NUMBER}@gs-project-accounts.iam.gserviceaccount.com"
-
-TEMP_TOPIC="gcs-trigger-topic-${GCP_PROJECT}"
-TEMP_BUCKET="gcs-trigger-${GCP_PROJECT}-$(uuidgen | tr '[:upper:]' '[:lower:]' | cut -d- -f1)"
-
-# Create topic
-gcloud pubsub topics create "${TEMP_TOPIC}" --project="${GCP_PROJECT}" --quiet || true
-
-# Create bucket
-gsutil mb -p "${GCP_PROJECT}" "gs://${TEMP_BUCKET}"
-
-# Try notification once (it may fail)
-if ! gsutil notification create -t "${TEMP_TOPIC}" -f json "gs://${TEMP_BUCKET}"; then
-  echo "First notification creation failed — waiting for service account to be provisioned..."
-  sleep 15
-  # Try again
-  gsutil notification create -t "${TEMP_TOPIC}" -f json "gs://${TEMP_BUCKET}"
-fi
-
-# Now grant Pub/Sub role
-GCS_SVC_EMAIL="service-${GCP_PROJECT_NUMBER}@gs-project-accounts.iam.gserviceaccount.com"
-gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
-  --member="serviceAccount:${GCS_SVC_EMAIL}" \
-  --role="roles/pubsub.publisher" \
-  --quiet
-
-# Grant the service account permissions to publish to the topic
-gcloud pubsub topics add-iam-policy-binding stage-chunk-topic \
-  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
-  --role="roles/pubsub.publisher"
-
-# Optional cleanup
-gsutil notification delete "gs://${TEMP_BUCKET}"
-gsutil rm -r "gs://${TEMP_BUCKET}"
-gcloud pubsub topics delete "${TEMP_TOPIC}" --quiet
 
 # === GRANT IAM ROLES TO SERVICE ACCOUNT ===
 
@@ -161,11 +120,6 @@ gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
 gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/bigquery.jobUser"
-
-# Pub/Sub
-gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
-  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
-  --role="roles/pubsub.subscriber"
 
 # Storage admin
 gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
