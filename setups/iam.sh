@@ -15,91 +15,90 @@ fi
 # Make sure the check_var function is available
 if ! declare -F check_var >/dev/null; then
   echo "check_var is not defined." >&2
-  return 1
+  exit 1
 fi
 
-# FIXME: Move GCS bucket setup and permissions to another script and also Dataflow setup should be separate.
-
 # === CONFIGURATION ===
-
 check_var "GCP_PROJECT"
 check_var "SERVICE_ACCOUNT_EMAIL"
 check_var "GCS_BUCKET"
 
-# Set email of currently authenticated user (optional IAM binding later)
-# FIXME: Shouldn't this be the service account email instead?
-# It is used to assign storage.admin role at the end.
-USER_EMAIL="${USER_EMAIL:-$(gcloud config get-value account --quiet)}"
-
 # === SET PROJECT CONTEXT ===
+
+# Ensure the user account is not a service account
+USER_ACCOUNT="$(gcloud config get-value account)"
+if [[ "$USER_ACCOUNT" == *gserviceaccount.com ]]; then
+  echo "ERROR: The user account ${USER_ACCOUNT} is a service account. Please use a user account instead." >&2
+  exit 1
+fi
+
+# Set the current project
 gcloud config set project "${GCP_PROJECT}" --quiet
 GCP_PROJECT_NUMBER="$(gcloud projects describe "${GCP_PROJECT}" --format='value(projectNumber)' --quiet)"
 
-# === GRANT IAM ROLES TO SERVICE ACCOUNT ===
+# === IAM BINDINGS FOR SERVICE ACCOUNT ===
 
-# Enable Cloud Functions development and impersonation
-gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
-  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
-  --role="roles/cloudfunctions.developer"
+# FIXME: Move Dataflow and Cloud Build setup to another script
 
-gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
-  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+# Impersonation of the service account by the user account
+gcloud iam service-accounts add-iam-policy-binding "${SERVICE_ACCOUNT_EMAIL}" \
+  --member="user:${USER_ACCOUNT}" \
   --role="roles/iam.serviceAccountUser"
 
-# Allow the service account to run Cloud Build jobs
-gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
-  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
-  --role="roles/cloudbuild.builds.editor"
-
-# Give it permission to access the staging bucket
-gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
-  --member="serviceAccount:${GCP_PROJECT_NUMBER}@cloudbuild.gserviceaccount.com" \
-  --role="roles/storage.objectViewer"
-
-gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
-  --member="serviceAccount:${GCP_PROJECT_NUMBER}@cloudbuild.gserviceaccount.com" \
-  --role="roles/storage.objectCreator"
-
-gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
-  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
-  --role="roles/storage.objectAdmin"
-
-gcloud storage buckets add-iam-policy-binding gs://${GCS_BUCKET} \
-  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
-  --role="roles/storage.objectViewer"
-
-gcloud storage buckets add-iam-policy-binding gs://${GCS_BUCKET} \
-  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
-  --role="roles/storage.objectAdmin"
-
+# Service Usage API
 gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/serviceusage.serviceUsageConsumer"
 
+# Cloud Functions development
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/cloudfunctions.developer"
+
+# Cloud Build jobs
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/cloudbuild.builds.editor"
+
+# Cloud storage viewer
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
+  --member="serviceAccount:${GCP_PROJECT_NUMBER}@cloudbuild.gserviceaccount.com" \
+  --role="roles/storage.objectViewer"
+
+# Cloud storage object creation
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
+  --member="serviceAccount:${GCP_PROJECT_NUMBER}@cloudbuild.gserviceaccount.com" \
+  --role="roles/storage.objectCreator"
+
+# Cloud storage admin
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/storage.objectAdmin"
+
+# Cloud Build storage bucket admin
 gsutil iam ch \
   "serviceAccount:${SERVICE_ACCOUNT_EMAIL}:objectAdmin" \
   "gs://${GCP_PROJECT}_cloudbuild"
 
+# Cloud Build storage bucket object creation
 gsutil iam ch \
   "serviceAccount:${SERVICE_ACCOUNT_EMAIL}:objectCreator" \
   "gs://${GCP_PROJECT}_cloudbuild"
 
+# Cloud Build storage bucket viewer
 gsutil iam ch \
   "serviceAccount:${GCP_PROJECT_NUMBER}@cloudbuild.gserviceaccount.com:objectViewer" \
   "gs://${GCP_PROJECT}_cloudbuild"
 
-# Dataflow
+# Dataflow developer
 gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/dataflow.developer"
+
+# Dataflow worker
 gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/dataflow.worker"
-
-# GCS
-gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
-  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
-  --role="roles/storage.objectAdmin"
 
 # Logging
 gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
@@ -111,17 +110,19 @@ gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/compute.networkUser"
 
-# BigQuery
+# BigQuery data editor
 gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/bigquery.dataEditor"
+
+# BigQuery job user
 gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/bigquery.jobUser"
 
-# Storage admin
+# Storage admin on the user account
 gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
-  --member="user:${USER_EMAIL}" \
+  --member="user:$(gcloud config get-value account --quiet)" \
   --role="roles/storage.admin"
 
 echo "All required IAM roles granted to ${SERVICE_ACCOUNT_EMAIL}."

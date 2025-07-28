@@ -15,7 +15,7 @@ fi
 # Make sure the check_var function is available
 if ! declare -F check_var >/dev/null; then
   echo "check_var is not defined." >&2
-  return 1
+  exit 1
 fi
 
 # Check for required environment variables
@@ -39,5 +39,13 @@ gcloud storage buckets add-iam-policy-binding gs://${GCS_BUCKET} \
 gcloud storage buckets add-iam-policy-binding gs://${GCS_BUCKET} \
   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/storage.objectAdmin"
+
+# Grant the service account the ability to create objects in the bucket
+gsutil iam ch \
+  "serviceAccount:${SERVICE_ACCOUNT_EMAIL}:objectCreator" \
+  gs://${GCS_BUCKET}
+
+# Enable uniform bucket-level access to respect project IAM
+gsutil uniformbucketlevelaccess set on gs://${GCS_BUCKET}
 
 echo "Bucket ${GCS_BUCKET} setup complete with necessary IAM roles for service account ${SERVICE_ACCOUNT_EMAIL}."

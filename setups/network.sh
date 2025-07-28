@@ -16,30 +16,15 @@ fi
 # Make sure the check_var function is available
 if ! declare -F check_var >/dev/null; then
   echo "check_var is not defined." >&2
-  return 1
-fi
-
-# Check for gcloud command
-if ! command -v gcloud >/dev/null 2>&1; then
-  echo "gcloud command not found. Please install the Google Cloud SDK."
   exit 1
 fi
 
-# Set the project ID from the environment
-GCP_PROJECT=$(gcloud config get-value project)
+check_var "GCP_PROJECT"
 
-# Prompt for confirmation before making changes
-read -r -p "This script will modify GCP networking resources in project ${GCP_PROJECT}. Continue? [y/N] " confirm
-confirm=$(echo "$confirm" | xargs)  # Trim leading/trailing whitespace
-if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-  echo "Aborted."
-  exit 1
-fi
+echo "Enabling network for GCP project: ${GCP_PROJECT}"
 
 # Enable the required Compute service before proceeding
-echo "Enabling Compute service for GCP project: ${GCP_PROJECT}"
 gcloud services enable compute.googleapis.com --project="${GCP_PROJECT}" --quiet
-echo "Compute service enabled."
 
 # Create default network if it doesn't exist
 if ! gcloud compute networks describe default --project="${GCP_PROJECT}" &>/dev/null; then

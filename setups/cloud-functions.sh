@@ -10,7 +10,7 @@ fi
 # Make sure the check_var function is available
 if ! declare -F check_var >/dev/null; then
   echo "check_var is not defined." >&2
-  return 1
+  exit 1
 fi
 
 check_var "GCP_PROJECT"
@@ -23,7 +23,7 @@ check_var "REGION" "us-central1"
 GCP_PROJECT_NUMBER="$(gcloud projects describe "${GCP_PROJECT}" --format='value(projectNumber)')"
 
 # We need to run this script with a user account which can grant IAM roles.
-gcloud config set account jeremym@lsst.cloud
+gcloud config set account $(gcloud config get-value account --quiet)
 gcloud config set project "${GCP_PROJECT}"
 
 # Enable the necessary services
@@ -68,17 +68,5 @@ gcloud artifacts repositories create ppdb-docker-repo \
 gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
   --member="serviceAccount:${GCP_PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
   --role="roles/cloudbuild.builds.builder"
-
-# Enable uniform bucket-level access to respect project IAM
-gsutil uniformbucketlevelaccess set on "${BUCKET_NAME}"
-
-# Grant the service access to the GCS bucket
-gsutil iam ch \
-  "serviceAccount:ppdb-storage-manager@${GCP_PROJECT}.iam.gserviceaccount.com:objectCreator" \
-  gs://${GCS_BUCKET}
-
-# Switch to the service account for performing the deployment
-gcloud auth activate-service-account --key-file="$HOME/.gcp/keys/${GCP_PROJECT}/${SERVICE_ACCOUNT_NAME}.json"
-gcloud config set project "${GCP_PROJECT}"
 
 echo "Setup complete. You can now submit builds using your service account."

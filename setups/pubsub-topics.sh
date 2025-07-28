@@ -11,8 +11,9 @@ fi
 # Make sure the check_var function is available
 if ! declare -F check_var >/dev/null; then
   echo "check_var is not defined." >&2
-  return 1
+  exit 1
 fi
+
 
 check_var "GOOGLE_APPLICATION_CREDENTIALS"
 check_var "GCP_PROJECT"
