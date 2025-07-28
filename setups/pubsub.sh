@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 ###############################################################################
-# Set up Pub/Sub for GCS eventing in PPDB.
+# Set up Pub/Sub permissions on the SA for GCS eventing.
 ###############################################################################
 
 set -euxo pipefail

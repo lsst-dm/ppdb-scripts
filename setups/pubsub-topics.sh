@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+###############################################################################
+# Setup the Pub/Sub topics and subscriptions for chunk processing.
+###############################################################################
+
 set -euxo pipefail
 
 # Prevent sourcing — this script must be executed, not sourced

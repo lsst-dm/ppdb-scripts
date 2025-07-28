@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+###############################################################################
+# Setup the permissions and services for using Cloud Run functions.
+###############################################################################
+
 set -euxo pipefail
 
 # Prevent sourcing — this script must be executed, not sourced

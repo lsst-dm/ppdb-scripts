@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+###############################################################################
+# Enable the necessary Google Cloud services for PPDB.
+###############################################################################
+
+# FIXME: Some of the services may be redundantly enabled by other scripts.
+
 set -euxo pipefail
 
 gcloud services enable \
