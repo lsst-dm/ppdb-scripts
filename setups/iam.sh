@@ -40,9 +40,9 @@ GCP_PROJECT_NUMBER="$(gcloud projects describe "${GCP_PROJECT}" --format='value(
 
 # FIXME: Move Dataflow and Cloud Build setup to another script
 
-# Impersonation of the service account by the user account
+# Allow the service account to impersonate itself
 gcloud iam service-accounts add-iam-policy-binding "${SERVICE_ACCOUNT_EMAIL}" \
-  --member="user:${USER_ACCOUNT}" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/iam.serviceAccountUser"
 
 # Service Usage API
