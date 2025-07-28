@@ -1,32 +1,30 @@
 #!/usr/bin/env bash
 
-set -euxo pipefail
-
 ###############################################################################
 # Set up IAM roles for PPDB service account.
 ###############################################################################
+
+set -euxo pipefail
+
+# Prevent sourcing — this script must be executed, not sourced
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  echo "Error: this script must be executed, not sourced." >&2
+  return 1
+fi
+
+# Make sure the check_var function is available
+if ! declare -F check_var >/dev/null; then
+  echo "check_var is not defined." >&2
+  return 1
+fi
 
 # FIXME: Move GCS bucket setup and permissions to another script and also Dataflow setup should be separate.
 
 # === CONFIGURATION ===
 
-# Name of the Google Cloud project needs to be set in the environment.
-if [ -z "${GCP_PROJECT:-}" ]; then
-  echo "GCP_PROJECT is unset or empty. Please set it to your environment."
-  exit 1
-fi
-
-# Email of the service account needs to be set in the environment.
-if [ -z "${SERVICE_ACCOUNT_EMAIL:-}" ]; then
-  echo "SERVICE_ACCOUNT_EMAIL is unset or empty. Please set it to your service account email."
-  exit 1
-fi
-
-# Name of the target GCS bucket needs to be set in the environment.
-if [ -z "${GCS_BUCKET:-}" ]; then
-  echo "GCS_BUCKET is unset or empty. Please set it to your Google Cloud Storage bucket."
-  exit 1
-fi
+check_var "GCP_PROJECT"
+check_var "SERVICE_ACCOUNT_EMAIL"
+check_var "GCS_BUCKET"
 
 # Set email of currently authenticated user (optional IAM binding later)
 # FIXME: Shouldn't this be the service account email instead?

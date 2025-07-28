@@ -1,15 +1,21 @@
 #!/usr/bin/env bash
+
 set -euxo pipefail
 
-if [ -z "${GOOGLE_APPLICATION_CREDENTIALS:-}" ]; then
-  echo "GOOGLE_APPLICATION_CREDENTIALS is unset or empty. Please set it to your service account key file."
-  exit 1
+# Prevent sourcing — this script must be executed, not sourced
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  echo "Error: this script must be executed, not sourced." >&2
+  return 1
 fi
 
-if [ -z "${GCP_PROJECT:-}" ]; then
-  echo "GCP_PROJECT is unset or empty. Please set it to your Google Cloud project ID."
-  exit 1
+# Make sure the check_var function is available
+if ! declare -F check_var >/dev/null; then
+  echo "check_var is not defined." >&2
+  return 1
 fi
+
+check_var "GOOGLE_APPLICATION_CREDENTIALS"
+check_var "GCP_PROJECT"
 
 for name in "stage-chunk"; do  # Add more names as needed
 

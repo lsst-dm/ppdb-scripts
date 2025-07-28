@@ -6,13 +6,20 @@
 
 set -euxo pipefail
 
-# === CONFIGURATION ===
-
-# Name of the Google Cloud project needs to be set in the environment.
-if [ -z "${GCP_PROJECT:-}" ]; then
-  echo "GCP_PROJECT is unset or empty. Please set it to your environment."
-  exit 1
+# Prevent sourcing — this script must be executed, not sourced
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  echo "Error: this script must be executed, not sourced." >&2
+  return 1
 fi
+
+# Make sure the check_var function is available
+if ! declare -F check_var >/dev/null; then
+  echo "check_var is not defined." >&2
+  return 1
+fi
+
+# === CONFIGURATION ===
+check_var "GCP_PROJECT"
 
 # === DEFINE SERVICE ACCOUNT ===
 SERVICE_ACCOUNT_NAME="ppdb-storage-manager"

@@ -1,26 +1,23 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-if [ -z "${GCP_PROJECT:-}" ]; then
-  GCP_PROJECT="$(gcloud config get-value project --quiet)"
+# Prevent sourcing — this script must be executed, not sourced
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  echo "Error: this script must be executed, not sourced." >&2
+  return 1
 fi
 
-if [ -z "${GCS_BUCKET:-}" ]; then
-  echo "GCS_BUCKET is unset or empty. Please set it to your Google Cloud Storage bucket name."
-  exit 1
+# Make sure the check_var function is available
+if ! declare -F check_var >/dev/null; then
+  echo "check_var is not defined." >&2
+  return 1
 fi
 
-if [ -z "${SERVICE_ACCOUNT_NAME:-}" ]; then
-  SERVICE_ACCOUNT_NAME="ppdb-storage-manager"
-fi
-
-if [ -z "${SERVICE_ACCOUNT_EMAIL:-}" ]; then
-  SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT_NAME}@${GCP_PROJECT}.iam.gserviceaccount.com"
-fi
-
-if [ -z "${REGION:-}" ]; then
-  REGION="us-central1"
-fi
+check_var "GCP_PROJECT"
+check_var "GCS_BUCKET"
+check_var "SERVICE_ACCOUNT_NAME" "ppdb-storage-manager"
+check_var "SERVICE_ACCOUNT_EMAIL" "${SERVICE_ACCOUNT_NAME}@${GCP_PROJECT}.iam.gserviceaccount.com"
+check_var "REGION" "us-central1"
 
 # Get the project number for IAM bindings
 GCP_PROJECT_NUMBER="$(gcloud projects describe "${GCP_PROJECT}" --format='value(projectNumber)')"
@@ -58,7 +55,7 @@ gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
 
 # Grant the Artifact Registry Writer role to the service account
 gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
-  --member="serviceAccount:${SERVICE_ACCOUNT_NAME}@ppdb-prod.iam.gserviceaccount.com" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/artifactregistry.writer"
 
 # Create the Artifact Registry repository if it doesn't exist

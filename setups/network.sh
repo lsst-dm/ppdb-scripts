@@ -7,6 +7,18 @@
 
 set -euxo pipefail
 
+# Prevent sourcing — this script must be executed, not sourced
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  echo "Error: this script must be executed, not sourced." >&2
+  return 1
+fi
+
+# Make sure the check_var function is available
+if ! declare -F check_var >/dev/null; then
+  echo "check_var is not defined." >&2
+  return 1
+fi
+
 # Check for gcloud command
 if ! command -v gcloud >/dev/null 2>&1; then
   echo "gcloud command not found. Please install the Google Cloud SDK."
