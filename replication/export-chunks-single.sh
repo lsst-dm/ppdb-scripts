@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euxo pipefail
+set -euo pipefail
 
 # Prevent sourcing — this script must be executed, not sourced
 if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
