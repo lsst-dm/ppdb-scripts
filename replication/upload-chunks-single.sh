@@ -27,7 +27,7 @@ ppdb-replication \
     --dataset ${GCP_PROJECT}:${DATASET_ID} \
     --wait-interval 0 \
     --upload-interval 0 \
-    --prefix data/tmp \
+    --prefix data \
     --exit-on-empty \
     --exit-on-error \
     ${PPDB_CONFIG_FILE}
