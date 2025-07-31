@@ -4,6 +4,9 @@
 # Setup the GKE cluster for CloudNativePG.
 #
 # This is just here for reference and probably should not be executed directly.
+# The Kubernetes manifests are located in the `k8/cnpg` directory.
+# This script is NOT idempotent and should be run only once, or the steps
+# should be manually executed and verified.
 ###############################################################################
 
 set -euxo pipefail
@@ -17,6 +20,17 @@ fi
 # Require check_var function
 if ! declare -F check_var >/dev/null; then
   echo "check_var is not defined." >&2
+  exit 1
+fi
+
+# Ensure kubectl is installed and working
+if ! command -v kubectl >/dev/null 2>&1; then
+  echo "Error: kubectl is not installed or not in PATH." >&2
+  exit 1
+fi
+
+if ! kubectl version --client=true >/dev/null 2>&1; then
+  echo "Error: kubectl is not functioning correctly." >&2
   exit 1
 fi
 
@@ -59,10 +73,16 @@ kubectl create secret generic ppdb-pg-credentials \
 # Apply the PostgreSQL cluster manifest
 kubectl apply -f $PPDB_SCRIPTS_DIR/k8/cnpg/cluster.yaml
 
-# FIXME: Ensure the cluster is ready here before proceeding.
+# Wait for the CNPG Cluster resource to report "Ready" (untested)
+kubectl wait --namespace=ppdb --for=condition=Ready --timeout=300s cluster/ppdb
+
+# Optionally also wait for all pods to be "Ready" (untested)
+kubectl wait --namespace=ppdb --for=condition=Ready pod --selector=cnpg.io/cluster=ppdb --timeout=300s
 
 # Apply the LoadBalancer service manifest
 kubectl apply -f $PPDB_SCRIPTS_DIR/k8/cnpg/lb.yaml
+
+# FIXME: Wait for the LoadBalancer service to be ready
 
 # Create firewall rule
 PROJECT_NUMBER=$(gcloud projects describe "$GCP_PROJECT" --format="value(projectNumber)")
@@ -84,4 +104,5 @@ EXTERNAL_IP=$(kubectl get svc ppdb-lb -n ppdb -o jsonpath='{.status.loadBalancer
 PG_PASSWORD=$(kubectl get secret ppdb-pg-credentials -n ppdb -o jsonpath='{.data.password}' | base64 -d)
 
 # Execute a test query to verify the connection
+# FIXME: Database name should eventually be "ppdb" but currently set to "appdb" in the manifest.
 PGPASSWORD="$DB_PASSWORD" psql -h "$EXTERNAL_IP" -U ppdb_pg_user -d appdb -c "SELECT 1;"
