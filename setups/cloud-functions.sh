@@ -22,7 +22,7 @@ check_var "GCP_PROJECT"
 check_var "GCS_BUCKET"
 check_var "SERVICE_ACCOUNT_NAME" "ppdb-storage-manager"
 check_var "SERVICE_ACCOUNT_EMAIL" "${SERVICE_ACCOUNT_NAME}@${GCP_PROJECT}.iam.gserviceaccount.com"
-check_var "REGION" "us-central1"
+check_var "GCP_REGION" "us-central1"
 
 # Get the project number for IAM bindings
 GCP_PROJECT_NUMBER="$(gcloud projects describe "${GCP_PROJECT}" --format='value(projectNumber)')"

@@ -17,8 +17,8 @@ if [ -z "${GCS_BUCKET:-}" ]; then
   exit 1
 fi
 
-if [ -z "${REGION:-}" ]; then
-  echo "REGION is unset or empty. Please set it to your Google Cloud region."
+if [ -z "${GCP_REGION:-}" ]; then
+  echo "GCP_REGION is unset or empty. Please set it to your Google Cloud region."
   exit 1
 fi
 
@@ -30,7 +30,7 @@ fi
 python parq_count_beam_job.py \
   --runner=DataflowRunner \
   --project="${PROJECT_ID}" \
-  --region="${REGION}" \
+  --region="${GCP_REGION}" \
   --temp_location="gs://${GCS_BUCKET}/dataflow/temp" \
   --staging_location="gs://${GCS_BUCKET}/dataflow/staging" \
   --service_account_email="${SERVICE_ACCOUNT_EMAIL}" \
