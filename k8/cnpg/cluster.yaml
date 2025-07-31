@@ -11,7 +11,7 @@ spec:
     size: 10Gi
   bootstrap:
     initdb:
-      database: ppdb
+      database: appdb  # FIXME: This database should be called ppdb.
       owner: ppdb_pg_user
       secret:
         name: ppdb-pg-credentials
