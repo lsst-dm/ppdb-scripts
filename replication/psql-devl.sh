@@ -12,6 +12,7 @@ if ! declare -F check_var >/dev/null; then
   exit 1
 fi
 
+check_var "PPDB_DB_URL"
 check_var "PPDB_SCHEMA_NAME"
 
-psql "postgresql://rubin@usdf-prompt-processing-dev.slac.stanford.edu:5432/lsst-devl?options=-c%20search_path%3D${PPDB_SCHEMA_NAME}"
+psql "${PPDB_DB_URL}?options=-c%20search_path%3D${PPDB_SCHEMA_NAME}"
