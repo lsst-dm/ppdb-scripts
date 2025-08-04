@@ -14,6 +14,7 @@ if ! declare -F check_var >/dev/null; then
   exit 1
 fi
 
+check_var "PPDB_DB_URL"
 check_var "PPDB_SCHEMA_NAME"
 
 # Y/N confirmation
@@ -23,12 +24,10 @@ case "$confirm" in
     *) echo "Aborted."; exit 1 ;;
 esac
 
-# Database connection details
-DB_URL="postgresql://rubin@usdf-prompt-processing-dev.slac.stanford.edu:5432/lsst-devl"
 TABLE_NAME="PpdbReplicaChunk"
 
 # Connect to the database and execute the commands
-psql "$DB_URL" <<EOF
+psql "$PPDB_DB_URL" <<EOF
 SET search_path TO '$PPDB_SCHEMA_NAME';
 DELETE FROM "$PPDB_SCHEMA_NAME"."$TABLE_NAME";
 EOF
