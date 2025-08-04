@@ -34,6 +34,8 @@ if ! kubectl version --client=true >/dev/null 2>&1; then
   exit 1
 fi
 
+check_env_dir "PPDB_SCRIPTS_DIR"
+
 check_var "GCP_PROJECT"
 check_var "GCP_REGION"
 check_var "GKE_CLUSTER_NAME"
@@ -84,7 +86,7 @@ kubectl apply -f $PPDB_SCRIPTS_DIR/k8/cnpg/lb.yaml
 
 # FIXME: Wait for the LoadBalancer service to be ready
 
-# Create firewall rule
+# Create firewall rule for SLAC
 PROJECT_NUMBER=$(gcloud projects describe "$GCP_PROJECT" --format="value(projectNumber)")
 SERVICE_ACCOUNT_EMAIL=${PROJECT_NUMBER}-compute@developer.gserviceaccount.com
 gcloud compute firewall-rules create allow-ppdb-postgres-from-slac \
@@ -103,6 +105,21 @@ EXTERNAL_IP=$(kubectl get svc ppdb-lb -n ppdb -o jsonpath='{.status.loadBalancer
 # Get the password for the PostgreSQL user
 PG_PASSWORD=$(kubectl get secret ppdb-pg-credentials -n ppdb -o jsonpath='{.data.password}' | base64 -d)
 
+# Create a secret in Secret Manager for the database password
+echo -n "$PG_PASSWORD" | gcloud secrets create ppdb-db-password \
+  --project="$GCP_PROJECT" \
+  --replication-policy="automatic" \
+  --data-file=-
+
+# Add a new version to the secret
+echo -n "$PG_PASSWORD" | gcloud secrets versions add ppdb-db-password \
+  --project="$GCP_PROJECT" \
+  --data-file=-
+
+echo "Created secret..."
+gcloud secrets versions list ppdb-db-password \
+  --project="$GCP_PROJECT"
+
 # Execute a test query to verify the connection
 # FIXME: Database name should eventually be "ppdb" but currently set to "appdb" in the manifest.
-PGPASSWORD="$DB_PASSWORD" psql -h "$EXTERNAL_IP" -U ppdb_pg_user -d appdb -c "SELECT 1;"
+PGPASSWORD="$PG_PASSWORD" psql -h "$EXTERNAL_IP" -U ppdb_pg_user -d appdb -c "SELECT 1;"

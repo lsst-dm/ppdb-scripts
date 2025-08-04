@@ -74,6 +74,11 @@ if ! gsutil notification create -t "${TEMP_TOPIC}" -f json "gs://${TEMP_BUCKET}"
   fi
 fi
 
+# Cleanup the temporary bucket and topic
+gsutil notification delete "gs://${TEMP_BUCKET}"
+gsutil rm -r "gs://${TEMP_BUCKET}"
+gcloud pubsub topics delete "${TEMP_TOPIC}" --quiet
+
 # Grant the actual service account permissions to publish to the topic
 gcloud pubsub topics add-iam-policy-binding stage-chunk-topic \
   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
@@ -84,9 +89,16 @@ gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/pubsub.subscriber"
 
-# Cleanup the temporary bucket and topic
-gsutil notification delete "gs://${TEMP_BUCKET}"
-gsutil rm -r "gs://${TEMP_BUCKET}"
-gcloud pubsub topics delete "${TEMP_TOPIC}" --quiet
+# Grant the Pub/Sub service account permissions to invoke the Cloud Function
+gcloud run services add-iam-policy-binding trigger-stage-chunk \
+  --region=${GCP_REGION} \
+  --member="serviceAccount:service-${GCP_PROJECT_NUMBER}@gcp-sa-pubsub.iam.gserviceaccount.com" \
+  --role="roles/run.invoker"
+
+# Grant the compute account permissions to invoke the Cloud Function
+gcloud run services add-iam-policy-binding trigger-stage-chunk \
+  --region=us-central1 \
+  --member="serviceAccount:${GCP_PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+  --role="roles/run.invoker"
 
 echo "Pub/Sub and GCS eventing setup completed successfully."
