@@ -1,16 +1,23 @@
 #!/usr/bin/env bash
 
-set -euxo pipefail
+set -euo pipefail
 
-DATASET_NAME=${1:-ppdb_dev}
-GCP_PROJECT=$(gcloud config get-value project)
+if [ "$#" -ne 1 ]; then
+  echo "Usage: $0 <directory>"
+  echo "Please provide the output directory."
+  exit 1
+fi
 
-echo "Creating BigQuery dataset: ${GCP_PROJECT}.${DATASET_NAME}"
+output_dir="$1"
+
+if [ ! -d "$output_dir" ]; then
+  echo "Directory $output_dir does not exist. Creating it."
+  mkdir -p "$output_dir"
+fi
+
+echo "Generating DDL for dataset: ${GCP_PROJECT}.${DATASET_ID}"
 
 bq_generate_ddl.py \
-  --output-directory sql/${DATASET_NAME} \
+  --output-directory $output_dir \
   --project-id $GCP_PROJECT \
-  --dataset-name $DATASET_NAME \
-  --include-table DiaObject \
-  --include-table DiaSource \
-  --include-table DiaForcedSource
+  --dataset-name $DATASET_ID

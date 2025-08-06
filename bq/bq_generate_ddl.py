@@ -21,7 +21,7 @@ CLUSTERING = {
 
 
 def _generate_bq_ddl(
-    metadata: MetaData, include_tables: list[str], project_id: str, dataset_name: str
+    metadata: MetaData, include_tables: set[str], project_id: str, dataset_name: str
 ) -> dict[str, str]:
     """Generate DDL from schema and write to file."""
     ddl_statements = {}
@@ -35,6 +35,7 @@ def _generate_bq_ddl(
 
         # Compile the DDL statement
         ddl = str(CreateTable(table).compile(dialect=BigQueryDialect()))
+        ddl = ddl.strip()
 
         # Replace the table name with the fully qualified BigQuery table name
         schema_name, table_name = table_name.split(".")
@@ -50,11 +51,13 @@ def _generate_bq_ddl(
         partition_colname = "_PARTITIONTIME"
         if table_name in PARTITIONS:
             partition_colname = PARTITIONS[table_name]
-        ddl += f"PARTITION BY {partition_colname}"  # Add partitioning clause
+        ddl += f"\nPARTITION BY {partition_colname}"  # Add partitioning clause
 
         if table_name in CLUSTERING:
             clustering_cols = CLUSTERING[table_name]
-            ddl += f" CLUSTER BY {', '.join(clustering_cols)}"
+            ddl += (
+                f"\nCLUSTER BY {', '.join(clustering_cols)}\n"  # Add clustering clause
+            )
 
         ddl_statements[table_name] = ddl
     return ddl_statements
@@ -117,10 +120,12 @@ def main():
     apdb_schema = Schema.from_uri("resource://lsst.sdm.schemas/apdb.yaml")
     print(f"Loaded APDB schema version: {apdb_schema.version}")
 
-    include_tables = args.include_table or []
-    if not include_tables:
-        # Default to including specific tables if none specified
-        include_tables = ["DiaObject", "DiaSource", "DiaForcedSource"]
+    include_table = args.include_table or []
+    include_table.extend(
+        ["DiaObject", "DiaSource", "DiaForcedSource"]
+    )  # These tables are always included.
+
+    include_tables = set(include_table)
 
     print(f"Including tables: {include_tables}")
 
@@ -142,7 +147,7 @@ def main():
         if not output_directory.is_dir():
             raise ValueError(f"Output path {output_directory} is not a directory.")
         _write_ddl_to_directory(ddl_statements, output_directory)
-        print(f"DDL statements written to {output_directory}")
+        print(f"DDL statements written to: {output_directory}")
     else:
         print("DDL statements:")
         _print_ddl(ddl_statements)
