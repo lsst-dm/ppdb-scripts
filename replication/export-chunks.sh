@@ -13,4 +13,5 @@ ppdb-replication \
     --max-wait-time 0 \
     --check-interval 0 \
     --exit-on-empty \
+    --delete-existing \
     "$@"
