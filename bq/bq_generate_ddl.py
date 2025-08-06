@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import re
 import sys
 from pathlib import Path
 from typing import IO
@@ -11,7 +12,7 @@ from sqlalchemy import MetaData
 from sqlalchemy.schema import CreateTable
 from sqlalchemy_bigquery import BigQueryDialect
 
-PARTITIONS = {"DiaObject": "validityStart"}
+PARTITIONS = {"DiaObject": "DATE(validityStart)"}
 
 CLUSTERING = {
     "DiaObject": ["diaObjectId"],
@@ -20,46 +21,57 @@ CLUSTERING = {
 }
 
 
+def sanitize_bq_comment(text: str) -> str:
+    return text.replace("'", "")
+
+
 def _generate_bq_ddl(
     metadata: MetaData, include_tables: set[str], project_id: str, dataset_name: str
 ) -> dict[str, str]:
-    """Generate DDL from schema and write to file."""
     ddl_statements = {}
-    for table_name, table in metadata.tables.items():
 
-        if table_name.replace(f"{metadata.schema}.", "") not in include_tables:
-            print(f"Skipping table: {table_name} (not in include list)")
+    for table_key, table in metadata.tables.items():
+        raw_table_name = table_key.replace(f"{metadata.schema}.", "")
+        if raw_table_name not in include_tables:
+            print(f"Skipping table: {table_key} (not in include list)")
             continue
 
-        print(f"Generating DDL for table: {table_name}")
+        print(f"Generating DDL for table: {raw_table_name}")
 
-        # Compile the DDL statement
-        ddl = str(CreateTable(table).compile(dialect=BigQueryDialect()))
-        ddl = ddl.strip()
+        compiled = str(CreateTable(table).compile(dialect=BigQueryDialect()))
+        compiled = compiled.strip()
 
-        # Replace the table name with the fully qualified BigQuery table name
-        schema_name, table_name = table_name.split(".")
-        fully_qualified_table_name = f"`{project_id}.{dataset_name}.{table_name}`"
-        ddl = ddl.replace(f"`{schema_name}`.`{table_name}`", fully_qualified_table_name)
+        # Remove trailing table-level OPTIONS clause if present
+        # BigQuery syntax: ...\n) OPTIONS(description='...') — remove from \n) OPTIONS...
+        if "\n) OPTIONS(" in compiled:
+            compiled = compiled.split("\n) OPTIONS(")[0] + "\n)"
 
-        # Use CREATE OR REPLACE TABLE instead of CREATE TABLE
-        ddl = ddl.replace("CREATE TABLE", "CREATE OR REPLACE TABLE")
+        elif compiled.endswith(")"):
+            # If there's no OPTIONS but just ends with a paren, keep it
+            pass
+        else:
+            raise ValueError("Unexpected DDL format")
 
-        # Use BigQuery's FLOAT64 instead of DOUBLE
-        ddl = ddl.replace("DOUBLE", "FLOAT64")
+        # Replace unqualified table name with fully-qualified
+        schema_name, _ = table_key.split(".")
+        fqtn = f"`{project_id}.{dataset_name}.{raw_table_name}`"
+        compiled = compiled.replace(f"`{schema_name}`.`{raw_table_name}`", fqtn)
+        compiled = compiled.replace("CREATE TABLE", "CREATE OR REPLACE TABLE")
+        compiled = compiled.replace("DOUBLE", "FLOAT64")
 
-        partition_colname = "_PARTITIONTIME"
-        if table_name in PARTITIONS:
-            partition_colname = PARTITIONS[table_name]
-        ddl += f"\nPARTITION BY {partition_colname}"  # Add partitioning clause
+        # Add additional clauses
+        ddl_lines = [compiled]
 
-        if table_name in CLUSTERING:
-            clustering_cols = CLUSTERING[table_name]
-            ddl += (
-                f"\nCLUSTER BY {', '.join(clustering_cols)}\n"  # Add clustering clause
-            )
+        if raw_table_name in PARTITIONS:
+            ddl_lines.append(f"PARTITION BY {PARTITIONS[raw_table_name]}")
+        if raw_table_name in CLUSTERING:
+            ddl_lines.append(f"CLUSTER BY {', '.join(CLUSTERING[raw_table_name])}")
+        if table.comment:
+            clean_comment = sanitize_bq_comment(table.comment)
+            ddl_lines.append(f"OPTIONS(description='{clean_comment}')")
 
-        ddl_statements[table_name] = ddl
+        ddl_statements[raw_table_name] = "\n".join(ddl_lines)
+
     return ddl_statements
 
 
