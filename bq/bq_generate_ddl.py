@@ -1,22 +1,35 @@
 #!/usr/bin/env python
 
-from felis import Schema, MetaDataBuilder
-
-from sqlalchemy.schema import CreateTable
-from sqlalchemy_bigquery import BigQueryDialect
-
 import argparse
 import sys
 from pathlib import Path
 from typing import IO
 
+from felis import Schema, MetaDataBuilder
+
+from sqlalchemy import MetaData
+from sqlalchemy.schema import CreateTable
+from sqlalchemy_bigquery import BigQueryDialect
+
+PARTITIONS = {"DiaObject": "validityStart"}
+
+CLUSTERING = {
+    "DiaObject": ["diaObjectId"],
+    "DiaSource": ["diaObjectId"],
+    "DiaForcedSource": ["diaObjectId"],
+}
+
 
 def _generate_bq_ddl(
-    schema: Schema, project_id: str, dataset_name: str
+    metadata: MetaData, include_tables: list[str], project_id: str, dataset_name: str
 ) -> dict[str, str]:
     """Generate DDL from schema and write to file."""
     ddl_statements = {}
-    for table_name, table in schema.tables.items():
+    for table_name, table in metadata.tables.items():
+
+        if table_name.replace(f"{metadata.schema}.", "") not in include_tables:
+            print(f"Skipping table: {table_name} (not in include list)")
+            continue
 
         print(f"Generating DDL for table: {table_name}")
 
@@ -34,7 +47,14 @@ def _generate_bq_ddl(
         # Use BigQuery's FLOAT64 instead of DOUBLE
         ddl = ddl.replace("DOUBLE", "FLOAT64")
 
-        ddl += "PARTITION BY _PARTITIONTIME"  # Add partitioning clause
+        partition_colname = "_PARTITIONTIME"
+        if table_name in PARTITIONS:
+            partition_colname = PARTITIONS[table_name]
+        ddl += f"PARTITION BY {partition_colname}"  # Add partitioning clause
+
+        if table_name in CLUSTERING:
+            clustering_cols = CLUSTERING[table_name]
+            ddl += f" CLUSTER BY {', '.join(clustering_cols)}"
 
         ddl_statements[table_name] = ddl
     return ddl_statements
@@ -53,7 +73,7 @@ def _write_ddl_to_directory(ddl_statements, output_directory: Path) -> None:
         output_file = output_directory / f"{table_name}.sql"
         with open(output_file, "w") as f:
             f.write(ddl)
-            print(f"DDL for {table_name} written to {output_file}")
+            print(f"Wrote DDL for '{table_name}' to: {output_file}")
 
 
 def _make_parser():
@@ -92,22 +112,28 @@ def main():
     parser = _make_parser()
     args = parser.parse_args()
 
+    # This will get the APDB schema from the sdm_schemas which is installed
+    # in the Python environment.
     apdb_schema = Schema.from_uri("resource://lsst.sdm.schemas/apdb.yaml")
     print(f"Loaded APDB schema version: {apdb_schema.version}")
 
-    metadata = MetaDataBuilder(apdb_schema, ignore_constraints=True).build()
-    ddl_statements = _generate_bq_ddl(metadata, args.project_id, args.dataset_name)
+    include_tables = args.include_table or []
+    if not include_tables:
+        # Default to including specific tables if none specified
+        include_tables = ["DiaObject", "DiaSource", "DiaForcedSource"]
 
-    if args.include_table:
-        # Filter the DDL statements based on the specified tables
-        ddl_statements = {
-            table_name: ddl
-            for table_name, ddl in ddl_statements.items()
-            if table_name in args.include_table
-        }
-        if not ddl_statements:
-            print("No matching tables found.")
-            sys.exit(1)
+    print(f"Including tables: {include_tables}")
+
+    metadata = MetaDataBuilder(apdb_schema, ignore_constraints=True).build()
+    ddl_statements = _generate_bq_ddl(
+        metadata, include_tables, args.project_id, args.dataset_name
+    )
+
+    if not ddl_statements:
+        print(
+            "No DDL statements generated. Check if the specified tables exist in the schema."
+        )
+        return
 
     if args.output_directory:
         output_directory = Path(args.output_directory)
