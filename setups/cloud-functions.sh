@@ -63,6 +63,24 @@ gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/artifactregistry.writer"
 
+# Allow the service account to invoke the promote-chunks Cloud Run service
+gcloud run services add-iam-policy-binding promote-chunks \
+  --region=us-central1 \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/run.invoker"
+
+# Force creation of the Cloud Scheduler service identity
+gcloud beta services identity create \
+  --service=cloudscheduler.googleapis.com \
+  --project="${GCP_PROJECT}"
+
+
+# Let the service account impersonate itself
+SCHEDULER_AGENT="service-${GCP_PROJECT_NUMBER}@gcp-sa-cloudscheduler.iam.gserviceaccount.com"
+gcloud iam service-accounts add-iam-policy-binding "${SERVICE_ACCOUNT_EMAIL}" \
+  --member="serviceAccount:${SCHEDULER_AGENT}" \
+  --role="roles/iam.serviceAccountTokenCreator"
+
 # Create the Artifact Registry repository if it doesn't exist
 gcloud artifacts repositories create ppdb-docker-repo \
   --repository-format=docker \
