@@ -1,7 +1,16 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-# Export a single chunk
-export-chunks.sh --single
+if [[ $# -ne 1 ]] || ! [[ "$1" =~ ^[0-9]+$ ]]; then
+    echo "Usage: $0 <number_of_times>"
+    exit 1
+fi
 
-# Upload chunks to GCS
+count="$1"
+
+for ((i = 1; i <= count; i++)); do
+    echo "Export run $i of $count"
+    export-chunks.sh --single
+done
+
 upload-chunks.sh
