@@ -17,7 +17,12 @@ fi
 
 echo "Generating DDL for dataset: ${GCP_PROJECT}.${DATASET_ID}"
 
-bq_generate_ddl.py \
-  --output-directory $output_dir \
-  --project-id $GCP_PROJECT \
-  --dataset-name $DATASET_ID
+cmd="bq_generate_ddl.py --output-directory $output_dir --project-id $GCP_PROJECT --dataset-name $DATASET_ID"
+
+if [ -n "${SDM_SCHEMAS_DIR:-}" ]; then
+  echo "Using SDM_SCHEMA_DIR: $SDM_SCHEMAS_DIR"
+  cmd+=" --schema-uri file://$SDM_SCHEMAS_DIR/yml/apdb.yaml"
+fi
+
+echo "Running command: $cmd"
+eval "$cmd"

@@ -5,8 +5,7 @@ import sys
 from pathlib import Path
 from typing import IO
 
-from felis import Schema, MetaDataBuilder
-
+from felis import MetaDataBuilder, Schema
 from sqlalchemy import MetaData
 from sqlalchemy.schema import CreateTable
 from sqlalchemy_bigquery import BigQueryDialect
@@ -118,17 +117,23 @@ def _make_parser():
         action="append",
         help="Specify tables to include. Can be used multiple times.",
     )
+    parser.add_argument(
+        "--schema-uri",
+        type=str,
+        default="resource://lsst.sdm.schemas/apdb.yaml",
+        help="URI to the Felis schema file.",
+    )
     return parser
 
 
 def main():
-
     parser = _make_parser()
     args = parser.parse_args()
 
     # This will get the APDB schema from the sdm_schemas which is installed
     # in the Python environment.
-    apdb_schema = Schema.from_uri("resource://lsst.sdm.schemas/apdb.yaml")
+    print(f"Loading APDB schema from: {args.schema_uri}")
+    apdb_schema = Schema.from_uri(args.schema_uri)
     print(f"Loaded APDB schema version: {apdb_schema.version}")
 
     include_table = args.include_table or []
