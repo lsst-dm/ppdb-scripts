@@ -52,7 +52,7 @@ for table in "${tables[@]}"; do
 
   # Append replicaChunkId
   updated_schema="$(echo "${schema_json}" \
-    | jq -c '. + [{"name":"replicaChunkId","type":"INTEGER","mode":"REQUIRED","description":"Chunk ID for staging"}]')"
+    | jq -c '. + [{"name":"apdb_replica_chunk","type":"INTEGER","mode":"REQUIRED","description":"APDB replica chunk for staging"}]')"
 
   schema_file="$(mktemp)"
   cleanup_files+=("$schema_file")
