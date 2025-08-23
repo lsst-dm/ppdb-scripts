@@ -2,7 +2,8 @@
 
 set -euxo pipefail
 
-ppdb-replication \
+DAX_APDB_MONITOR_CONFIG="logging:lsst.dax.ppdb.metrics,lsst.dax.ppdb.export._chunk_uploader,-any" \
+    ppdb-replication \
     --log-level ${LOG_LEVEL} \
     upload-chunks \
     --bucket ${GCS_BUCKET} \
