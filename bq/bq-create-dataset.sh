@@ -12,7 +12,8 @@ command -v jq >/dev/null 2>&1 || { echo "Error: jq is required." >&2; exit 1; }
 
 # ---- args ----
 if [ -z "${1:-}" ]; then
-  echo "Usage: $0 <dir>"
+  echo "Usage: $0 <sql_dir>"
+  echo "  <sql_dir>: Directory containing table DDL SQL files."
   exit 1
 fi
 sql_dir="$1"
