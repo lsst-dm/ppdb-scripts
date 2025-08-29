@@ -21,7 +21,7 @@ fi
 check_var "GOOGLE_APPLICATION_CREDENTIALS"
 check_var "GCP_PROJECT"
 
-for name in "stage-chunk"; do  # Add more names as needed
+for name in "stage-chunk" "update-chunk-status"; do  # Add more names as needed
 
   TOPIC_NAME=${name}-topic
   SUBSCRIPTION_NAME=${name}-sub

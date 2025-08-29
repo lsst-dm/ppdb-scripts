@@ -1,16 +1,28 @@
 #!/usr/bin/env bash
 
-set -euxo pipefail
+set -euo pipefail
 
-DATASET_NAME=${1:-ppdb_dev}
-GCP_PROJECT=$(gcloud config get-value project)
+if [ "$#" -ne 1 ]; then
+  echo "Usage: $0 <directory>"
+  echo "Please provide the output directory."
+  exit 1
+fi
 
-echo "Creating BigQuery dataset: ${GCP_PROJECT}.${DATASET_NAME}"
+output_dir="$1"
 
-bq_generate_ddl.py \
-  --output-directory sql/${DATASET_NAME} \
-  --project-id $GCP_PROJECT \
-  --dataset-name $DATASET_NAME \
-  --include-table DiaObject \
-  --include-table DiaSource \
-  --include-table DiaForcedSource
+if [ ! -d "$output_dir" ]; then
+  echo "Directory $output_dir does not exist. Creating it."
+  mkdir -p "$output_dir"
+fi
+
+echo "Generating DDL for dataset: ${GCP_PROJECT}.${DATASET_ID}"
+
+cmd="bq_generate_ddl.py --output-directory $output_dir --project-id $GCP_PROJECT --dataset-name $DATASET_ID"
+
+if [ -n "${SDM_SCHEMAS_DIR:-}" ]; then
+  echo "Using SDM_SCHEMA_DIR: $SDM_SCHEMAS_DIR"
+  cmd+=" --schema-uri file://$SDM_SCHEMAS_DIR/yml/apdb.yaml"
+fi
+
+echo "Running command: $cmd"
+eval "$cmd"

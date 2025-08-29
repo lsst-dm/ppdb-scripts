@@ -1,0 +1,17 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: ppdb
+  namespace: ppdb
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:15
+  storage:
+    storageClass: standard
+    size: 10Gi
+  bootstrap:
+    initdb:
+      database: appdb  # FIXME: This database should be called ppdb.
+      owner: ppdb_pg_user
+      secret:
+        name: ppdb-pg-credentials

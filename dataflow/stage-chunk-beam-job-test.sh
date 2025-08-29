@@ -7,7 +7,7 @@ set -euxo pipefail
 export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.gcp/keys/ppdb-storage-manager-key.json"
 
 PROJECT_ID="ppdb-dev-438721"
-REGION="us-central1"
+GCP_REGION="us-central1"
 BUCKET="rubin-ppdb-test-bucket-1"
 DATASET_ID="ppdb_dev"
 TEMP_LOCATION="gs://${BUCKET}/dataflow/temp"
@@ -16,7 +16,7 @@ SERVICE_ACCOUNT=ppdb-storage-manager
 python stage_chunk_beam_job.py \
   --runner=DataflowRunner \
   --project="${PROJECT_ID}" \
-  --region="${REGION}" \
+  --region="${GCP_REGION}" \
   --temp_location="${TEMP_LOCATION}" \
   --staging_location="gs://${BUCKET}/dataflow/staging" \
   --input_path="gs://${BUCKET}/data/tmp/2025/04/23/1737056400" \

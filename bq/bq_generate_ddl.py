@@ -1,42 +1,75 @@
 #!/usr/bin/env python
 
-from felis import Schema, MetaDataBuilder
-
-from sqlalchemy.schema import CreateTable
-from sqlalchemy_bigquery import BigQueryDialect
-
 import argparse
 import sys
 from pathlib import Path
 from typing import IO
 
+from felis import MetaDataBuilder, Schema
+from sqlalchemy import MetaData
+from sqlalchemy.schema import CreateTable
+from sqlalchemy_bigquery import BigQueryDialect
+
+PARTITIONS = {"DiaObject": "DATE(validityStart)"}
+
+CLUSTERING = {
+    "DiaObject": ["diaObjectId"],
+    "DiaSource": ["diaObjectId"],
+    "DiaForcedSource": ["diaObjectId"],
+}
+
+
+def sanitize_bq_comment(text: str) -> str:
+    return text.replace("'", "")
+
 
 def _generate_bq_ddl(
-    schema: Schema, project_id: str, dataset_name: str
+    metadata: MetaData, include_tables: set[str], project_id: str, dataset_name: str
 ) -> dict[str, str]:
-    """Generate DDL from schema and write to file."""
     ddl_statements = {}
-    for table_name, table in schema.tables.items():
 
-        print(f"Generating DDL for table: {table_name}")
+    for table_key, table in metadata.tables.items():
+        raw_table_name = table_key.replace(f"{metadata.schema}.", "")
+        if raw_table_name not in include_tables:
+            print(f"Skipping table: {table_key} (not in include list)")
+            continue
 
-        # Compile the DDL statement
-        ddl = str(CreateTable(table).compile(dialect=BigQueryDialect()))
+        print(f"Generating DDL for table: {raw_table_name}")
 
-        # Replace the table name with the fully qualified BigQuery table name
-        schema_name, table_name = table_name.split(".")
-        fully_qualified_table_name = f"`{project_id}.{dataset_name}.{table_name}`"
-        ddl = ddl.replace(f"`{schema_name}`.`{table_name}`", fully_qualified_table_name)
+        compiled = str(CreateTable(table).compile(dialect=BigQueryDialect()))
+        compiled = compiled.strip()
 
-        # Use CREATE OR REPLACE TABLE instead of CREATE TABLE
-        ddl = ddl.replace("CREATE TABLE", "CREATE OR REPLACE TABLE")
+        # Remove trailing table-level OPTIONS clause if present
+        # BigQuery syntax: ...\n) OPTIONS(description='...') — remove from \n) OPTIONS...
+        if "\n) OPTIONS(" in compiled:
+            compiled = compiled.split("\n) OPTIONS(")[0] + "\n)"
 
-        # Use BigQuery's FLOAT64 instead of DOUBLE
-        ddl = ddl.replace("DOUBLE", "FLOAT64")
+        elif compiled.endswith(")"):
+            # If there's no OPTIONS but just ends with a paren, keep it
+            pass
+        else:
+            raise ValueError("Unexpected DDL format")
 
-        ddl += "PARTITION BY _PARTITIONTIME"  # Add partitioning clause
+        # Replace unqualified table name with fully-qualified
+        schema_name, _ = table_key.split(".")
+        fqtn = f"`{project_id}.{dataset_name}.{raw_table_name}`"
+        compiled = compiled.replace(f"`{schema_name}`.`{raw_table_name}`", fqtn)
+        compiled = compiled.replace("CREATE TABLE", "CREATE OR REPLACE TABLE")
+        compiled = compiled.replace("DOUBLE", "FLOAT64")
 
-        ddl_statements[table_name] = ddl
+        # Add additional clauses
+        ddl_lines = [compiled]
+
+        if raw_table_name in PARTITIONS:
+            ddl_lines.append(f"PARTITION BY {PARTITIONS[raw_table_name]}")
+        if raw_table_name in CLUSTERING:
+            ddl_lines.append(f"CLUSTER BY {', '.join(CLUSTERING[raw_table_name])}")
+        if table.comment:
+            clean_comment = sanitize_bq_comment(table.comment)
+            ddl_lines.append(f"OPTIONS(description='{clean_comment}')")
+
+        ddl_statements[raw_table_name] = "\n".join(ddl_lines)
+
     return ddl_statements
 
 
@@ -53,7 +86,7 @@ def _write_ddl_to_directory(ddl_statements, output_directory: Path) -> None:
         output_file = output_directory / f"{table_name}.sql"
         with open(output_file, "w") as f:
             f.write(ddl)
-            print(f"DDL for {table_name} written to {output_file}")
+            print(f"Wrote DDL for '{table_name}' to: {output_file}")
 
 
 def _make_parser():
@@ -84,30 +117,44 @@ def _make_parser():
         action="append",
         help="Specify tables to include. Can be used multiple times.",
     )
+    parser.add_argument(
+        "--schema-uri",
+        type=str,
+        default="resource://lsst.sdm.schemas/apdb.yaml",
+        help="URI to the Felis schema file.",
+    )
     return parser
 
 
 def main():
-
     parser = _make_parser()
     args = parser.parse_args()
 
-    apdb_schema = Schema.from_uri("resource://lsst.sdm.schemas/apdb.yaml")
+    # This will get the APDB schema from the sdm_schemas which is installed
+    # in the Python environment.
+    print(f"Loading APDB schema from: {args.schema_uri}")
+    apdb_schema = Schema.from_uri(args.schema_uri)
     print(f"Loaded APDB schema version: {apdb_schema.version}")
 
-    metadata = MetaDataBuilder(apdb_schema, ignore_constraints=True).build()
-    ddl_statements = _generate_bq_ddl(metadata, args.project_id, args.dataset_name)
+    include_table = args.include_table or []
+    include_table.extend(
+        ["DiaObject", "DiaSource", "DiaForcedSource"]
+    )  # These tables are always included.
 
-    if args.include_table:
-        # Filter the DDL statements based on the specified tables
-        ddl_statements = {
-            table_name: ddl
-            for table_name, ddl in ddl_statements.items()
-            if table_name in args.include_table
-        }
-        if not ddl_statements:
-            print("No matching tables found.")
-            sys.exit(1)
+    include_tables = set(include_table)
+
+    print(f"Including tables: {include_tables}")
+
+    metadata = MetaDataBuilder(apdb_schema, ignore_constraints=True).build()
+    ddl_statements = _generate_bq_ddl(
+        metadata, include_tables, args.project_id, args.dataset_name
+    )
+
+    if not ddl_statements:
+        print(
+            "No DDL statements generated. Check if the specified tables exist in the schema."
+        )
+        return
 
     if args.output_directory:
         output_directory = Path(args.output_directory)
@@ -116,7 +163,7 @@ def main():
         if not output_directory.is_dir():
             raise ValueError(f"Output path {output_directory} is not a directory.")
         _write_ddl_to_directory(ddl_statements, output_directory)
-        print(f"DDL statements written to {output_directory}")
+        print(f"DDL statements written to: {output_directory}")
     else:
         print("DDL statements:")
         _print_ddl(ddl_statements)

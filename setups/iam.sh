@@ -125,4 +125,10 @@ gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
   --member="user:$(gcloud config get-value account --quiet)" \
   --role="roles/storage.admin"
 
+# Secrets access
+gcloud secrets add-iam-policy-binding ppdb-db-password \
+  --project="$GCP_PROJECT" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/secretmanager.secretAccessor"
+
 echo "All required IAM roles granted to ${SERVICE_ACCOUNT_EMAIL}."
