@@ -29,8 +29,8 @@ gcloud config set project "${GCP_PROJECT}" --quiet
 GCP_PROJECT_NUMBER="$(gcloud projects describe "${GCP_PROJECT}" --format='value(projectNumber)' --quiet)"
 
 # === IAM BINDINGS FOR GCS EVENTING ===
-# We have to go through some monkey business to set up GCS eventing with Pub/Sub
-# in order to create the service account for it.
+# We have to go through some monkey business to set up GCS eventing with
+# Pub/Sub in order to create the service account for it.
 # FIXME: Find a better way to do this without creating a temporary bucket and topic.
 
 echo "Granting Pub/Sub Publisher to GCS service account service-${GCP_PROJECT_NUMBER}@gs-project-accounts.iam.gserviceaccount.com"
@@ -82,23 +82,6 @@ gcloud pubsub topics delete "${TEMP_TOPIC}" --quiet
 # Grant the actual service account permissions to publish to the topic
 gcloud pubsub topics add-iam-policy-binding stage-chunk-topic \
   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
-  --role="roles/pubsub.publisher"
-
-# Grant the actual service account permissions to subscribe to the topic
-gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
-  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
-  --role="roles/pubsub.subscriber"
-
-# Grant the Pub/Sub service account permissions to invoke the Cloud Function
-gcloud run services add-iam-policy-binding trigger-stage-chunk \
-  --region=${GCP_REGION} \
-  --member="serviceAccount:service-${GCP_PROJECT_NUMBER}@gcp-sa-pubsub.iam.gserviceaccount.com" \
-  --role="roles/run.invoker"
-
-# Grant the compute account permissions to invoke the Cloud Function
-gcloud run services add-iam-policy-binding trigger-stage-chunk \
-  --region=us-central1 \
-  --member="serviceAccount:${GCP_PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
-  --role="roles/run.invoker"
+  --role="roles/pubsub.publis
 
 echo "Pub/Sub and GCS eventing setup completed successfully."

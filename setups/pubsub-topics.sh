@@ -21,11 +21,13 @@ fi
 check_var "GOOGLE_APPLICATION_CREDENTIALS"
 check_var "GCP_PROJECT"
 
-for name in "stage-chunk" "update-chunk-status"; do  # Add more names as needed
+for name in "stage-chunk" "track-chunk"; do  # Add more names as needed
 
   TOPIC_NAME=${name}-topic
   SUBSCRIPTION_NAME=${name}-sub
   DEAD_LETTER_TOPIC_NAME=${name}-dlt
+
+  echo "Setting up Pub/Sub topic and subscription for: $name"
 
   # Create pubsub topic and subscription
   gcloud pubsub topics create "$TOPIC_NAME" --project="$GCP_PROJECT" || echo "Topic $TOPIC_NAME already exists."
@@ -41,6 +43,6 @@ for name in "stage-chunk" "update-chunk-status"; do  # Add more names as needed
     --max-delivery-attempts=5 \
     --project="$GCP_PROJECT" || echo "Subscription $SUBSCRIPTION_NAME already exists."
 
-  echo "Created topic $TOPIC_NAME and subscription $SUBSCRIPTION_NAME with dead letter topic $DEAD_LETTER_TOPIC_NAME."
+  echo "Pub/Sub setup for $name completed."
 
 done

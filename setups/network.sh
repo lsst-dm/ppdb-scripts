@@ -24,7 +24,7 @@ check_var "GCP_PROJECT"
 echo "Enabling network for GCP project: ${GCP_PROJECT}"
 
 # Enable the required Compute service before proceeding
-gcloud services enable compute.googleapis.com --project="${GCP_PROJECT}" --quiet
+# gcloud services enable compute.googleapis.com --project="${GCP_PROJECT}" --quiet
 
 # Create default network if it doesn't exist
 if ! gcloud compute networks describe default --project="${GCP_PROJECT}" &>/dev/null; then

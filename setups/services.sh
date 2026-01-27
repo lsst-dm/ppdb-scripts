@@ -19,5 +19,7 @@ gcloud services enable \
   logging.googleapis.com \
   pubsub.googleapis.com \
   run.googleapis.com \
+  secretmanager.googleapis.com \
   serviceusage.googleapis.com \
+  sqladmin.googleapis.com \
   storage.googleapis.com
