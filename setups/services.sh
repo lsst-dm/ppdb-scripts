@@ -13,6 +13,7 @@ gcloud services enable \
   cloudbuild.googleapis.com \
   cloudfunctions.googleapis.com \
   cloudresourcemanager.googleapis.com \
+  cloudscheduler.googleapis.com \
   compute.googleapis.com \
   dataflow.googleapis.com \
   iam.googleapis.com \
