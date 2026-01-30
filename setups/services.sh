@@ -24,3 +24,4 @@ gcloud services enable \
   serviceusage.googleapis.com \
   sqladmin.googleapis.com \
   storage.googleapis.com
+
