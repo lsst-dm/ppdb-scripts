@@ -38,8 +38,6 @@ GCP_PROJECT_NUMBER="$(gcloud projects describe "${GCP_PROJECT}" --format='value(
 
 # === IAM BINDINGS FOR SERVICE ACCOUNT ===
 
-# FIXME: Move Dataflow and Cloud Build setup to another script
-
 # Allow the service account to impersonate itself
 gcloud iam service-accounts add-iam-policy-binding "${SERVICE_ACCOUNT_EMAIL}" \
   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
@@ -59,6 +57,12 @@ gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
 gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/cloudbuild.builds.editor"
+
+# Artifact Registry writer
+gcloud artifacts repositories add-iam-policy-binding ppdb-docker-repo \
+  --location=us-central1 \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/artifactregistry.writer"
 
 # Cloud storage viewer
 gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
@@ -131,4 +135,14 @@ gcloud secrets add-iam-policy-binding ppdb-db-password \
   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/secretmanager.secretAccessor"
 
-echo "All required IAM roles granted to ${SERVICE_ACCOUNT_EMAIL}."
+# Pub/Sub subscriber
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/pubsub.subscriber"
+
+# Cloud Scheduler admin
+gcloud projects add-iam-policy-binding "${GCP_PROJECT}" --quiet \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/cloudscheduler.admin"
+
+echo "All required IAM roles granted to: ${SERVICE_ACCOUNT_EMAIL}."

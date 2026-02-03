@@ -92,4 +92,11 @@ gcloud projects add-iam-policy-binding "${GCP_PROJECT}" \
   --member="serviceAccount:${GCP_PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
   --role="roles/cloudbuild.builds.builder"
 
-echo "Setup complete. You can now submit builds using your service account."
+# Grant the service account permissions to invoke the trigger-stage-chunk Cloud
+# Run function
+gcloud run services add-iam-policy-binding trigger-stage-chunk \
+  --region=${GCP_REGION} \
+  --member="serviceAccount:service-${GCP_PROJECT_NUMBER}@gcp-sa-pubsub.iam.gserviceaccount.com" \
+  --role="roles/run.invoker"
+
+echo "Cloud Run setup complete."

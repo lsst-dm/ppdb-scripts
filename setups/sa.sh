@@ -20,16 +20,14 @@ fi
 
 # === CONFIGURATION ===
 check_var "GCP_PROJECT"
-
-# === DEFINE SERVICE ACCOUNT ===
-SERVICE_ACCOUNT_NAME="ppdb-storage-manager"
-SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT_NAME}@${GCP_PROJECT}.iam.gserviceaccount.com"
+check_var "SERVICE_ACCOUNT_NAME"
+check_var "SERVICE_ACCOUNT_EMAIL"
 
 # === CREATE SERVICE ACCOUNT IF NEEDED ===
 if ! gcloud iam service-accounts describe "${SERVICE_ACCOUNT_EMAIL}" --quiet &>/dev/null; then
   gcloud iam service-accounts create "${SERVICE_ACCOUNT_NAME}" \
     --display-name="PPDB Storage Manager" \
-    --description="Service account for managing PPDB storage and Dataflow jobs" \
+    --description="Service account for PPDB" \
     --quiet
 else
   echo "Service account ${SERVICE_ACCOUNT_EMAIL} already exists."
