@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Set SA
+gcloud config set account ${SERVICE_ACCOUNT_EMAIL}
+gcloud config get-value account
+
+# Set project
+gcloud config set project ${GCP_PROJECT}
+gcloud config get-value project
