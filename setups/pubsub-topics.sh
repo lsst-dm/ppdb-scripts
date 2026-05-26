@@ -18,7 +18,6 @@ if ! declare -F check_var >/dev/null; then
   exit 1
 fi
 
-check_var "GOOGLE_APPLICATION_CREDENTIALS"
 check_var "GCP_PROJECT"
 
 for name in "stage-chunk" "track-chunk"; do  # Add more names as needed
